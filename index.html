@@ -241,21 +241,31 @@
 </div>
 
 <div class="tabs">
-  <button class="tab active" onclick="switchTab(&#39;open&#39;)">Open the week</button>
+  <button class="tab active" onclick="switchTab(&#39;weekly-review&#39;)">Weekly Review</button>
   <button class="tab" onclick="switchTab(&#39;days&#39;)">Daily schedule</button>
-  <button class="tab" onclick="switchTab(&#39;close&#39;)">Close the week</button>
   <button class="tab" onclick="switchTab(&#39;master&#39;)">Master Task List</button>
   <button class="tab" onclick="switchTab(&#39;framework&#39;)">Framework</button>
 </div>
 
 <div class="content">
 
-  <!-- OPEN THE WEEK -->
-  <div class="panel active" id="panel-open">
+  <!-- WEEKLY REVIEW -->
+  <div class="panel active" id="panel-weekly-review">
+
+    <!-- prev / next week navigation -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px">
+      <button id="wr-prev" class="btn btn-sm" onclick="gotoPrevWeek()" style="min-width:74px">&larr; prev</button>
+      <div style="text-align:center;flex:1">
+        <div id="wr-week-label" style="font-size:16px;font-weight:600;color:var(--text)">Week of &mdash;</div>
+        <span id="wr-context-hint" style="display:none;font-size:11px;font-family:var(--mono);color:var(--muted);margin-top:2px"></span>
+      </div>
+      <button id="wr-next" class="btn btn-sm" onclick="gotoNextWeek()" style="min-width:74px">next &rarr;</button>
+    </div>
+
     <div class="metrics">
       <div class="metric">
         <div class="metric-label">Goals set</div>
-        <div class="metric-value" id="m-goals-set">3</div>
+        <div class="metric-value" id="m-goals-set">0</div>
         <div class="metric-sub">this week</div>
       </div>
       <div class="metric">
@@ -274,117 +284,70 @@
       <div style="display:flex;align-items:center;margin-bottom:14px">
         <div class="card-title" style="margin-bottom:0;flex:1">Brain dump</div>
         <button id="voice-btn" class="btn btn-sm" onclick="toggleVoice()" style="display:flex;align-items:center;gap:6px;font-size:12px">
-          <span id="voice-icon">🎙</span> <span id="voice-label">Record</span>
+          <span id="voice-icon">&#127897;</span> <span id="voice-label">Record</span>
         </button>
       </div>
-      <textarea id="brain-dump" rows="5" placeholder="Stream of consciousness — urgent things, random ideas, post-it notes, anything on your mind. No structure needed. Hit Send to Task List when ready to triage."></textarea>
+      <textarea id="brain-dump" rows="5" placeholder="Stream of consciousness &mdash; urgent things, random ideas, post-it notes, anything on your mind. No structure needed. Hit Analyze &amp; Triage when ready."></textarea>
       <div style="display:flex;justify-content:flex-end;margin-top:10px">
-        <button class="btn btn-sm btn-accent" onclick="analyzeBrainDump()" style="font-size:12px">⚡ Analyze &amp; Triage →</button>
+        <button class="btn btn-sm btn-accent" onclick="analyzeBrainDump()" style="font-size:12px">&#9889; Analyze &amp; Triage &rarr;</button>
       </div>
     </div>
 
     <div class="card">
       <div class="card-title">Weekly goals</div>
       <div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:16px;padding:10px 12px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent)">
-        <strong style="color:var(--text);font-weight:500">Health · Wealth · Creativity · Good Wolf</strong> — add as many goals as needed per pillar. Check off as you go.<br>
+        <strong style="color:var(--text);font-weight:500">Health &middot; Wealth &middot; Creativity &middot; Good Wolf</strong> &mdash; add as many goals as needed per pillar. Check off as you go.<br>
         <span style="color:var(--subtle)">Crosshair items: assign to whichever pillar it primarily serves this week. Don't overthink it.</span>
       </div>
-      <div id="weekly-goals-container"><div class="pillar-goal-block" id="pillar-health"><div class="pillar-header"><span class="life-tag" style="background: rgb(232, 245, 238); color: rgb(42, 122, 74); border: 1px solid rgb(184, 223, 200);">Health</span><span class="pillar-hint">Training · nutrition · recovery · body comp</span></div><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><div class="goal-check" style="width: 18px; height: 18px; border: 1px solid rgb(204, 204, 204); border-radius: 4px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: transparent; user-select: none;">✓</div><input type="text" class="goal-input" placeholder="Health goal this week..."><span style="font-size: 15px; color: var(--border2); cursor: pointer; flex-shrink: 0;">×</span></div><button class="btn btn-sm" style="font-size: 11px; margin-top: 6px;">+ Add goal</button></div><div class="pillar-goal-block" id="pillar-wealth"><div class="pillar-header"><span class="life-tag" style="background: rgb(253, 243, 227); color: rgb(154, 95, 26); border: 1px solid rgb(240, 217, 168);">Wealth</span><span class="pillar-hint">Personal income · financial targets · non-GWE</span></div><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><div class="goal-check" style="width: 18px; height: 18px; border: 1px solid rgb(204, 204, 204); border-radius: 4px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: transparent; user-select: none;">✓</div><input type="text" class="goal-input" placeholder="Wealth goal this week..."><span style="font-size: 15px; color: var(--border2); cursor: pointer; flex-shrink: 0;">×</span></div><button class="btn btn-sm" style="font-size: 11px; margin-top: 6px;">+ Add goal</button></div><div class="pillar-goal-block" id="pillar-creative"><div class="pillar-header"><span class="life-tag" style="background: rgb(240, 236, 248); color: rgb(90, 74, 138); border: 1px solid rgb(200, 184, 232);">Creativity</span><span class="pillar-hint">Artist career · music · Be Here Now · songwriting</span></div><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><div class="goal-check" style="width: 18px; height: 18px; border: 1px solid rgb(204, 204, 204); border-radius: 4px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: transparent; user-select: none;">✓</div><input type="text" class="goal-input" placeholder="Creativity goal this week..."><span style="font-size: 15px; color: var(--border2); cursor: pointer; flex-shrink: 0;">×</span></div><button class="btn btn-sm" style="font-size: 11px; margin-top: 6px;">+ Add goal</button></div><div class="pillar-goal-block" id="pillar-goodwolf"><div class="pillar-header"><span class="life-tag" style="background: rgb(232, 240, 250); color: rgb(42, 90, 154); border: 1px solid rgb(176, 200, 236);">Good Wolf</span><span class="pillar-hint">GWE business goals</span></div><div style="margin-bottom: 10px;"><div style="font-size: 11px; font-family: var(--mono); color: rgb(42, 90, 154); margin-bottom: 6px; font-weight: 500;">Accounting / Legal</div><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><div class="goal-check" style="width: 18px; height: 18px; border: 1px solid rgb(204, 204, 204); border-radius: 4px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: transparent; user-select: none;">✓</div><input type="text" class="goal-input" placeholder="Accounting / Legal goal..."><span style="font-size: 15px; color: var(--border2); cursor: pointer; flex-shrink: 0;">×</span></div><button class="btn btn-sm" style="font-size: 11px; margin-top: 4px;">+ Add Accounting / Legal goal</button></div><div style="margin-bottom: 10px;"><div style="font-size: 11px; font-family: var(--mono); color: rgb(42, 90, 154); margin-bottom: 6px; font-weight: 500;">Production</div><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><div class="goal-check" style="width: 18px; height: 18px; border: 1px solid rgb(204, 204, 204); border-radius: 4px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: transparent; user-select: none;">✓</div><input type="text" class="goal-input" placeholder="Production goal..."><span style="font-size: 15px; color: var(--border2); cursor: pointer; flex-shrink: 0;">×</span></div><button class="btn btn-sm" style="font-size: 11px; margin-top: 4px;">+ Add Production goal</button></div><div style="margin-bottom: 10px;"><div style="font-size: 11px; font-family: var(--mono); color: rgb(42, 90, 154); margin-bottom: 6px; font-weight: 500;">Marketing</div><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><div class="goal-check" style="width: 18px; height: 18px; border: 1px solid rgb(204, 204, 204); border-radius: 4px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: transparent; user-select: none;">✓</div><input type="text" class="goal-input" placeholder="Marketing goal..."><span style="font-size: 15px; color: var(--border2); cursor: pointer; flex-shrink: 0;">×</span></div><button class="btn btn-sm" style="font-size: 11px; margin-top: 4px;">+ Add Marketing goal</button></div><div style="margin-bottom: 10px;"><div style="font-size: 11px; font-family: var(--mono); color: rgb(42, 90, 154); margin-bottom: 6px; font-weight: 500;">Sales</div><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><div class="goal-check" style="width: 18px; height: 18px; border: 1px solid rgb(204, 204, 204); border-radius: 4px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: transparent; user-select: none;">✓</div><input type="text" class="goal-input" placeholder="Sales goal..."><span style="font-size: 15px; color: var(--border2); cursor: pointer; flex-shrink: 0;">×</span></div><button class="btn btn-sm" style="font-size: 11px; margin-top: 4px;">+ Add Sales goal</button></div></div></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Weekly intention</div>
-      <div class="reflection-block" style="margin-bottom:14px;padding-bottom:14px">
-        <div class="reflection-label">What do you need from yourself to be successful this week?</div>
-        <textarea id="open-self" rows="2" placeholder="Mindset, habits, standards you&#39;re committing to..." oninput="S.openSelf=this.value;save()"></textarea>
-      </div>
-      <div class="reflection-block" style="margin-bottom:0;padding-bottom:0;border-bottom:none">
-        <div class="reflection-label">What external support do you need to be successful this week?</div>
-        <textarea id="open-support" rows="2" placeholder="People, resources, coaching, accountability..." oninput="S.openSupport=this.value;save()"></textarea>
-      </div>
-    </div>
-  </div>
-
-  <!-- DAILY SCHEDULE -->
-  <div class="panel" id="panel-days">
-    <div class="day-selector" id="day-selector"><div class="day-btn active" id="daybtn-mon"><div class="day-btn-name">Mon</div><div class="day-btn-theme">Admin + Accounting</div><div class="day-dot" style="background:#a08fb3"></div></div><div class="day-btn" id="daybtn-tue"><div class="day-btn-name">Tue</div><div class="day-btn-theme">Production</div><div class="day-dot" style="background:#4a7c62"></div></div><div class="day-btn" id="daybtn-wed"><div class="day-btn-name">Wed</div><div class="day-btn-theme">Marketing</div><div class="day-dot" style="background:#378ADD"></div></div><div class="day-btn" id="daybtn-thu"><div class="day-btn-name">Thu</div><div class="day-btn-theme">Biz Dev + Sales</div><div class="day-dot" style="background:#c8943a"></div></div><div class="day-btn" id="daybtn-fri"><div class="day-btn-name">Fri</div><div class="day-btn-theme">Business Catchall</div><div class="day-dot" style="background:#6b6b6b"></div></div><div class="day-btn" id="daybtn-sat"><div class="day-btn-name">Sat</div><div class="day-btn-theme">Personal Catchall</div><div class="day-dot" style="background:#7aa884"></div></div></div>
-    <div id="day-detail"><div class="card"><div style="font-size: 11px; color: var(--muted); font-family: var(--mono); margin-bottom: 6px; letter-spacing: 0.04em;">Mon — Admin + Accounting · Daily intention</div><input class="intention-field" type="text" placeholder="Word of the day, affirmation, or performance state..."><div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);"><div class="card-title">Today’s schedule</div><div style="font-size: 12px; color: var(--muted); font-style: italic; margin-bottom: 10px;">Payroll submissions due. Balcony time to open the week.</div><div class="time-block"><span class="time-label">Before 7am</span><span class="time-content"><strong>Creative time</strong> — this is your time for you</span></div><div class="time-block"><span class="time-label">AM · coffee</span><span class="time-content"><strong>Build the King</strong> — hit the gym</span></div><div class="time-block"><span class="time-label">AM · coffee</span><span class="time-content"><strong>Balcony time</strong> — Build the Kingdom</span></div><div class="time-block"><span class="time-label"><span class="p-badge p1-badge" style="font-size: 10px;">P1</span></span><input type="text" placeholder="Top priority — high focus block..." style="flex: 1 1 0%; font-size: 13px; background: transparent; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image: initial; border-bottom: 1px solid var(--border); border-radius: 0px; padding: 4px 0px; color: var(--text);"></div><div class="time-block"><span class="time-label"><span class="p-badge p2-badge" style="font-size: 10px;">P2</span></span><input type="text" placeholder="Must get done today..." style="flex: 1 1 0%; font-size: 13px; background: transparent; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image: initial; border-bottom: 1px solid var(--border); border-radius: 0px; padding: 4px 0px; color: var(--text);"></div><div class="time-block"><span class="time-label">Lunch</span><span class="time-content"><strong>Unplugged</strong> — no devices</span></div><div class="time-block"><span class="time-label"><span class="p-badge p3-badge" style="font-size: 10px;">P3</span></span><input type="text" placeholder="Make progress on this today..." style="flex: 1 1 0%; font-size: 13px; background: transparent; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image: initial; border-bottom: 1px solid var(--border); border-radius: 0px; padding: 4px 0px; color: var(--text);"></div><div class="time-block"><span class="time-label">5pm</span><span class="time-content"><strong>Hard stop</strong></span></div></div></div><div class="card"><div class="card-title">Urgent &amp; quick tasks</div><div id="urgent-list-mon"><div style="font-size: 13px; color: var(--muted); font-style: italic; padding: 4px 0px;">No urgent tasks — add one below.</div></div><div style="display: flex; gap: 8px; margin-top: 10px;"><input type="text" id="urgent-input-mon" placeholder="Add urgent task... (Enter)" style="flex: 1 1 0%; margin: 0px;"><button class="btn btn-sm">+ Add</button></div><div style="display: flex; justify-content: flex-end; margin-top: 10px;"><button class="btn btn-sm" style="font-size: 12px; color: var(--muted);">Send unchecked to Task List →</button></div></div><div class="card"><div class="ritual-section"><div class="ritual-section-label">Workday close</div><div class="ritual-item"><div class="ritual-check">✓</div><span class="ritual-label">24-hr response on calls, emails, texts</span></div><div class="ritual-item"><div class="ritual-check">✓</div><span class="ritual-label">HubSpot updated</span></div><div class="ritual-item"><div class="ritual-check">✓</div><span class="ritual-label">Tomorrow's P1 identified</span></div></div></div></div>
-  </div>
-
-  <!-- CLOSE THE WEEK -->
-  <div class="panel" id="panel-close">
-    <p class="ritual-text">"Get up on the balcony and evaluate your progress. Doing so will keep you focused, aligned and responsive." — Ignition Academy</p>
-
-    <div class="metrics" style="margin-bottom:20px">
-      <div class="metric">
-        <div class="metric-label">Goals complete</div>
-        <div class="metric-value" id="close-done-count">0</div>
-        <div class="metric-sub" id="close-done-pct">of 0</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Outreach</div>
-        <div class="metric-value" id="close-outreach">0</div>
-        <div class="metric-sub">touches this week</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">HubSpot</div>
-        <div class="metric-value" id="close-hubspot-val" style="font-size:16px;padding-top:6px">—</div>
-        <div class="metric-sub">trued up</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Weekly goals — how'd it go?</div>
-      <div id="goals-review"></div>
-      <div class="progress-wrap"><div class="progress-fill" id="goals-progress-fill" style="width:0%"></div></div>
-      <div class="progress-label" id="goals-progress-label">0 of 0 complete</div>
+      <div id="weekly-goals-container"></div>
     </div>
 
     <div class="card">
       <div style="font-size:11px;font-weight:500;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-family:var(--mono);margin-bottom:4px">Weekly reflection</div>
-      <div style="font-size:12px;color:var(--subtle);margin-bottom:18px;font-style:italic">Ignition Academy · Man in the Arena · Clarity Canvas</div>
+      <div style="font-size:12px;color:var(--subtle);margin-bottom:18px;font-style:italic">Ignition Academy &middot; Man in the Arena &middot; Clarity Canvas</div>
 
       <div class="reflection-block">
         <div class="reflection-label">1. Wins &amp; progress</div>
         <div class="reflection-prompt">What victories, big or small, did you achieve this week? Where have you moved meaningfully closer to your goals?</div>
-        <textarea id="ref-wins" rows="3" placeholder="What moved this week..." oninput="saveReflection(&#39;wins&#39;,this.value)"></textarea>
+        <textarea id="ref-wins" rows="3" placeholder="What moved this week..." oninput="saveReflection('wins',this.value)"></textarea>
       </div>
 
       <div class="reflection-block">
         <div class="reflection-label">2. What's working</div>
         <div class="reflection-prompt">Which elements are driving results? What is helping keep you on track?</div>
-        <textarea id="ref-working" rows="3" placeholder="What&#39;s creating momentum..." oninput="saveReflection(&#39;working&#39;,this.value)"></textarea>
+        <textarea id="ref-working" rows="3" placeholder="What's creating momentum..." oninput="saveReflection('working',this.value)"></textarea>
       </div>
 
       <div class="reflection-block">
         <div class="reflection-label">3. What's not working</div>
         <div class="reflection-prompt">Where are you falling off track, and why? What obstacles, mindsets or behaviors are holding you back?</div>
-        <textarea id="ref-notworking" rows="3" placeholder="Where are you losing ground..." oninput="saveReflection(&#39;notworking&#39;,this.value)"></textarea>
+        <textarea id="ref-notworking" rows="3" placeholder="Where are you losing ground..." oninput="saveReflection('notworking',this.value)"></textarea>
       </div>
 
       <div class="reflection-block">
         <div class="reflection-label">4. Adjustments for the week ahead</div>
         <div class="reflection-prompt">What needs to change to refocus and improve next week? What's your plan to stay aligned with your highest-leverage actions?</div>
-        <textarea id="ref-adjustments" rows="3" placeholder="What shifts next week..." oninput="saveReflection(&#39;adjustments&#39;,this.value)"></textarea>
+        <textarea id="ref-adjustments" rows="3" placeholder="What shifts next week..." oninput="saveReflection('adjustments',this.value)"></textarea>
       </div>
 
       <div class="reflection-block" style="margin-bottom:0">
         <div class="reflection-label">5. Support &amp; feedback needed</div>
         <div class="reflection-prompt">What support, coaching, or accountability do you need to seek out? Who can you turn to for guidance or perspective?</div>
-        <textarea id="ref-support" rows="3" placeholder="Who or what do you need..." oninput="saveReflection(&#39;support&#39;,this.value)"></textarea>
+        <textarea id="ref-support" rows="3" placeholder="Who or what do you need..." oninput="saveReflection('support',this.value)"></textarea>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">HubSpot outreach</div>
+      <div class="card-title">New business contacts</div>
       <div class="hubspot-row">
         <input type="checkbox" id="hubspot-check" onchange="saveHubspot()">
         <label for="hubspot-check">Outreach metrics trued up in HubSpot</label>
+        <span id="hubspot-status" style="margin-left:auto;font-size:12px;font-family:var(--mono);color:var(--muted)">Pending</span>
       </div>
       <div>
         <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:8px;letter-spacing:.04em">Outreach touches this week</div>
         <div class="outreach-controls">
-          <button class="outreach-btn" onclick="adjustOutreach(-1)">−</button>
+          <button class="outreach-btn" onclick="adjustOutreach(-1)">&minus;</button>
           <div><div class="outreach-num" id="outreach-num">0</div></div>
           <button class="outreach-btn" onclick="adjustOutreach(1)">+</button>
           <div class="outreach-label">new business<br>contacts</div>
@@ -392,9 +355,30 @@
       </div>
     </div>
 
-    <div class="footer-actions">
-      <button class="btn btn-accent" onclick="closeWeek()">Close the week →</button>
+    <div class="card">
+      <div class="card-title">Weekly intention</div>
+      <div class="reflection-block" style="margin-bottom:14px;padding-bottom:14px">
+        <div class="reflection-label">What do you need from yourself to be successful this week?</div>
+        <textarea id="open-self" rows="2" placeholder="Mindset, habits, standards you're committing to..." oninput="saveOpenSelf(this.value)"></textarea>
+      </div>
+      <div class="reflection-block" style="margin-bottom:0;padding-bottom:0;border-bottom:none">
+        <div class="reflection-label">What external support do you need to be successful this week?</div>
+        <textarea id="open-support" rows="2" placeholder="People, resources, coaching, accountability..." oninput="saveOpenSupport(this.value)"></textarea>
+      </div>
     </div>
+
+    <div class="card">
+      <div class="card-title">Next week &middot; one focus</div>
+      <div style="font-size:12px;color:var(--subtle);margin-bottom:10px;font-style:italic">Carry one thing forward. Use &rarr; next to start drafting next week.</div>
+      <textarea id="wr-next-focus" rows="3" placeholder="One thing to do differently or double down on next week..." oninput="saveNextFocus(this.value)"></textarea>
+    </div>
+
+  </div>
+
+  <!-- DAILY SCHEDULE -->
+  <div class="panel" id="panel-days">
+    <div class="day-selector" id="day-selector"><div class="day-btn active" id="daybtn-mon"><div class="day-btn-name">Mon</div><div class="day-btn-theme">Admin + Accounting</div><div class="day-dot" style="background:#a08fb3"></div></div><div class="day-btn" id="daybtn-tue"><div class="day-btn-name">Tue</div><div class="day-btn-theme">Production</div><div class="day-dot" style="background:#4a7c62"></div></div><div class="day-btn" id="daybtn-wed"><div class="day-btn-name">Wed</div><div class="day-btn-theme">Marketing</div><div class="day-dot" style="background:#378ADD"></div></div><div class="day-btn" id="daybtn-thu"><div class="day-btn-name">Thu</div><div class="day-btn-theme">Biz Dev + Sales</div><div class="day-dot" style="background:#c8943a"></div></div><div class="day-btn" id="daybtn-fri"><div class="day-btn-name">Fri</div><div class="day-btn-theme">Business Catchall</div><div class="day-dot" style="background:#6b6b6b"></div></div><div class="day-btn" id="daybtn-sat"><div class="day-btn-name">Sat</div><div class="day-btn-theme">Personal Catchall</div><div class="day-dot" style="background:#7aa884"></div></div></div>
+    <div id="day-detail"><div class="card"><div style="font-size: 11px; color: var(--muted); font-family: var(--mono); margin-bottom: 6px; letter-spacing: 0.04em;">Mon — Admin + Accounting · Daily intention</div><input class="intention-field" type="text" placeholder="Word of the day, affirmation, or performance state..."><div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);"><div class="card-title">Today’s schedule</div><div style="font-size: 12px; color: var(--muted); font-style: italic; margin-bottom: 10px;">Payroll submissions due. Balcony time to open the week.</div><div class="time-block"><span class="time-label">Before 7am</span><span class="time-content"><strong>Creative time</strong> — this is your time for you</span></div><div class="time-block"><span class="time-label">AM · coffee</span><span class="time-content"><strong>Build the King</strong> — hit the gym</span></div><div class="time-block"><span class="time-label">AM · coffee</span><span class="time-content"><strong>Balcony time</strong> — Build the Kingdom</span></div><div class="time-block"><span class="time-label"><span class="p-badge p1-badge" style="font-size: 10px;">P1</span></span><input type="text" placeholder="Top priority — high focus block..." style="flex: 1 1 0%; font-size: 13px; background: transparent; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image: initial; border-bottom: 1px solid var(--border); border-radius: 0px; padding: 4px 0px; color: var(--text);"></div><div class="time-block"><span class="time-label"><span class="p-badge p2-badge" style="font-size: 10px;">P2</span></span><input type="text" placeholder="Must get done today..." style="flex: 1 1 0%; font-size: 13px; background: transparent; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image: initial; border-bottom: 1px solid var(--border); border-radius: 0px; padding: 4px 0px; color: var(--text);"></div><div class="time-block"><span class="time-label">Lunch</span><span class="time-content"><strong>Unplugged</strong> — no devices</span></div><div class="time-block"><span class="time-label"><span class="p-badge p3-badge" style="font-size: 10px;">P3</span></span><input type="text" placeholder="Make progress on this today..." style="flex: 1 1 0%; font-size: 13px; background: transparent; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image: initial; border-bottom: 1px solid var(--border); border-radius: 0px; padding: 4px 0px; color: var(--text);"></div><div class="time-block"><span class="time-label">5pm</span><span class="time-content"><strong>Hard stop</strong></span></div></div></div><div class="card"><div class="card-title">Urgent &amp; quick tasks</div><div id="urgent-list-mon"><div style="font-size: 13px; color: var(--muted); font-style: italic; padding: 4px 0px;">No urgent tasks — add one below.</div></div><div style="display: flex; gap: 8px; margin-top: 10px;"><input type="text" id="urgent-input-mon" placeholder="Add urgent task... (Enter)" style="flex: 1 1 0%; margin: 0px;"><button class="btn btn-sm">+ Add</button></div><div style="display: flex; justify-content: flex-end; margin-top: 10px;"><button class="btn btn-sm" style="font-size: 12px; color: var(--muted);">Send unchecked to Task List →</button></div></div><div class="card"><div class="ritual-section"><div class="ritual-section-label">Workday close</div><div class="ritual-item"><div class="ritual-check">✓</div><span class="ritual-label">24-hr response on calls, emails, texts</span></div><div class="ritual-item"><div class="ritual-check">✓</div><span class="ritual-label">HubSpot updated</span></div><div class="ritual-item"><div class="ritual-check">✓</div><span class="ritual-label">Tomorrow's P1 identified</span></div></div></div></div>
   </div>
 
   <!-- MASTER LIST -->
@@ -820,6 +804,7 @@ function ensureState() {
   if (!S.dayRituals) S.dayRituals = {};
   if (!S.dayUrgent) S.dayUrgent = {};
   if (!S.masterItems) S.masterItems = [];
+  if (!S.weeks) S.weeks = {};
   if (!S.weekGoals) S.weekGoals = {};
   if (S.openSelf === undefined) S.openSelf = '';
   if (S.openSupport === undefined) S.openSupport = '';
@@ -867,6 +852,215 @@ function getWeekNum() {
   const qStart = new Date(now.getFullYear(), Math.floor(now.getMonth()/3)*3, 1);
   return Math.min(13, Math.max(1, Math.ceil((now - qStart)/(7*24*60*60*1000))));
 }
+
+// ── WEEKLY TIMELINE MODEL (S.weeks) ───────────────────────────────
+// Weeks are a keyed timeline, identified by their Monday's ISO date (YYYY-MM-DD).
+// Two pointers: viewWeekKey (what the Weekly Review tab displays, user-controlled
+// via prev/next) and currentWeekKey (what the rest of the app treats as "this week",
+// calendar-driven). Sunday belongs to the upcoming week (matches getWeekLabel()).
+function _pad2(n){ return (n < 10 ? '0' : '') + n; }
+function _ymd(d){ return d.getFullYear() + '-' + _pad2(d.getMonth()+1) + '-' + _pad2(d.getDate()); }
+
+function getMondayKey(dateOrNull){
+  var now = dateOrNull ? new Date(dateOrNull) : new Date();
+  var day = now.getDay(); // 0=Sun..6=Sat
+  var mon = new Date(now);
+  if (day === 0) { mon.setDate(now.getDate() + 1); }     // Sunday -> upcoming Monday
+  else { mon.setDate(now.getDate() - (day - 1)); }
+  mon.setHours(0,0,0,0);
+  return _ymd(mon);
+}
+function getCurrentMondayKey(){ return getMondayKey(null); }
+
+function dateFromKey(key){ var p = (key||'').split('-'); return new Date(+p[0], (+p[1])-1, +p[2]); }
+function getWeekLabelForKey(key){
+  var mon = dateFromKey(key);
+  var sat = new Date(mon); sat.setDate(mon.getDate() + 5);
+  var fmt = function(d){ return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); };
+  return 'Week of ' + fmt(mon) + ' – ' + fmt(sat);
+}
+function getPrevMondayKey(key){ var d = dateFromKey(key); d.setDate(d.getDate() - 7); return _ymd(d); }
+function getNextMondayKey(key){ var d = dateFromKey(key); d.setDate(d.getDate() + 7); return _ymd(d); }
+
+function emptyWeek(key){
+  return {
+    label: key ? getWeekLabelForKey(key) : '',
+    weekGoals: {},
+    brainDump: '',
+    reflection: { wins:'', working:'', notworking:'', adjustments:'', support:'' },
+    nextWeekFocus: '',
+    openSelf: '',
+    openSupport: '',
+    outreach: 0,
+    hubspot: false,
+    dayPriorities: { mon:['','',''], tue:['','',''], wed:['','',''], thu:['','',''], fri:['','',''], sat:['','',''] },
+    dayIntentions: {},
+    dayRituals: {},
+    dayUrgent: {},
+    pillars: { health:{goal:'',done:false}, wealth:{goal:'',done:false}, creative:{goal:'',done:false} }
+  };
+}
+function ensureWeek(key){
+  if (!S.weeks) S.weeks = {};
+  if (!key) key = getCurrentMondayKey();
+  if (!S.weeks[key]) S.weeks[key] = emptyWeek(key);
+  var w = S.weeks[key];
+  if (!w.weekGoals) w.weekGoals = {};
+  if (!w.reflection) w.reflection = { wins:'', working:'', notworking:'', adjustments:'', support:'' };
+  if (w.nextWeekFocus === undefined) w.nextWeekFocus = '';
+  if (w.openSelf === undefined) w.openSelf = '';
+  if (w.openSupport === undefined) w.openSupport = '';
+  if (w.outreach === undefined) w.outreach = 0;
+  if (w.hubspot === undefined) w.hubspot = false;
+  if (!w.dayPriorities) w.dayPriorities = {};
+  ['mon','tue','wed','thu','fri','sat'].forEach(function(k){ if(!Array.isArray(w.dayPriorities[k])) w.dayPriorities[k] = ['','','']; });
+  if (!w.dayIntentions) w.dayIntentions = {};
+  if (!w.dayRituals) w.dayRituals = {};
+  if (!w.dayUrgent) w.dayUrgent = {};
+  if (!w.pillars) w.pillars = { health:{goal:'',done:false}, wealth:{goal:'',done:false}, creative:{goal:'',done:false} };
+  ['health','wealth','creative'].forEach(function(k){ if(!w.pillars[k]) w.pillars[k] = {goal:'',done:false}; });
+  if (!w.label) w.label = getWeekLabelForKey(key);
+  return w;
+}
+// vw() = the week the Weekly Review tab is displaying; cw() = calendar "this week".
+function vw(){ if(!S.viewWeekKey) S.viewWeekKey = getCurrentMondayKey(); return ensureWeek(S.viewWeekKey); }
+function cw(){ if(!S.currentWeekKey) S.currentWeekKey = getCurrentMondayKey(); return ensureWeek(S.currentWeekKey); }
+
+// ── Migration from the old flat model + weeklyHistory array ────────
+var _MONTHS3 = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+function mondayKeyFromHistoryEntry(e){
+  if (!e) return null;
+  var dateYear = null, dateMonth = null, dateDay = null;
+  if (e.date && /^\d{4}-\d{2}-\d{2}/.test(e.date)) {
+    var dp = e.date.split('-'); dateYear = +dp[0]; dateMonth = (+dp[1])-1; dateDay = +dp[2];
+  }
+  // Preferred: parse the label "Week of Jun 8 – Jun 13" -> first "Jun 8" (the Monday).
+  var label = e.week || e.weekLabel || '';
+  var m = label.match(/([A-Za-z]{3,})\s+(\d{1,2})/);
+  if (m) {
+    var mon = _MONTHS3[m[1].slice(0,3).toLowerCase()];
+    var dayN = +m[2];
+    if (mon !== undefined) {
+      var year = (dateYear != null) ? dateYear : new Date().getFullYear();
+      if (dateMonth != null) {
+        if (mon - dateMonth > 6) year -= 1;        // label Dec, closed in Jan (next yr)
+        else if (dateMonth - mon > 6) year += 1;   // label Jan, closed in Dec (prev yr)
+      }
+      return getMondayKey(new Date(year, mon, dayN));
+    }
+  }
+  // Fallback: derive the Monday from the close date.
+  if (dateYear != null) return getMondayKey(new Date(dateYear, dateMonth, dateDay));
+  return null;
+}
+function weekFromHistoryEntry(e, key){
+  var w = emptyWeek(key);
+  if (e.weekGoals) w.weekGoals = JSON.parse(JSON.stringify(e.weekGoals));
+  if (e.reflection) w.reflection = Object.assign(w.reflection, e.reflection);
+  if (e.brainDump) w.brainDump = e.brainDump;
+  if (e.openSelf) w.openSelf = e.openSelf;
+  if (e.openSupport) w.openSupport = e.openSupport;
+  if (typeof e.outreach === 'number') w.outreach = e.outreach;
+  if (typeof e.hubspot === 'boolean') w.hubspot = e.hubspot;
+  if (e.dayPriorities) w.dayPriorities = Object.assign(w.dayPriorities, JSON.parse(JSON.stringify(e.dayPriorities)));
+  if (e.dayIntentions) w.dayIntentions = JSON.parse(JSON.stringify(e.dayIntentions));
+  if (e.dayRituals) w.dayRituals = JSON.parse(JSON.stringify(e.dayRituals));
+  if (e.dayUrgent) w.dayUrgent = JSON.parse(JSON.stringify(e.dayUrgent));
+  if (Array.isArray(e.goals)) {
+    e.goals.forEach(function(g){ if (g && g.pillar && w.pillars[g.pillar]) w.pillars[g.pillar] = { goal: g.goal||'', done: !!g.done }; });
+  }
+  w._fromDate = e.date || '';
+  return w;
+}
+function weekFromLiveState(key){
+  var w = emptyWeek(key);
+  if (S.weekGoals && Object.keys(S.weekGoals).length) w.weekGoals = JSON.parse(JSON.stringify(S.weekGoals));
+  if (S.reflection) w.reflection = Object.assign(w.reflection, S.reflection);
+  if (S.brainDump) w.brainDump = S.brainDump;
+  if (S.openSelf) w.openSelf = S.openSelf;
+  if (S.openSupport) w.openSupport = S.openSupport;
+  if (typeof S.outreach === 'number') w.outreach = S.outreach;
+  if (typeof S.hubspot === 'boolean') w.hubspot = S.hubspot;
+  if (S.dayPriorities) w.dayPriorities = Object.assign(w.dayPriorities, JSON.parse(JSON.stringify(S.dayPriorities)));
+  if (S.dayIntentions) w.dayIntentions = JSON.parse(JSON.stringify(S.dayIntentions));
+  if (S.dayRituals) w.dayRituals = JSON.parse(JSON.stringify(S.dayRituals));
+  if (S.dayUrgent) w.dayUrgent = JSON.parse(JSON.stringify(S.dayUrgent));
+  if (S.pillars) ['health','wealth','creative'].forEach(function(k){ if (S.pillars[k]) w.pillars[k] = { goal: S.pillars[k].goal||'', done: !!S.pillars[k].done }; });
+  return w;
+}
+// One-time, idempotent. Leaves S.weeklyHistory + old flat fields intact as a backup.
+function _nonEmptyGoalCount(arr){ var c = 0; (arr||[]).forEach(function(g){ if (g && g.text && g.text.trim()) c++; }); return c; }
+// Merge "inc" (the preferred/newer snapshot) onto "base". Newer wins per field, but a
+// non-empty base value is NEVER clobbered by an empty inc value — so duplicate/stale
+// closes of the same week keep the richest content rather than dropping data.
+function mergeWeekData(base, inc){
+  function pickStr(b, i){ return (i && (''+i).trim()) ? i : b; }
+  base.brainDump    = pickStr(base.brainDump, inc.brainDump);
+  base.openSelf     = pickStr(base.openSelf, inc.openSelf);
+  base.openSupport  = pickStr(base.openSupport, inc.openSupport);
+  base.nextWeekFocus= pickStr(base.nextWeekFocus, inc.nextWeekFocus);
+  ['wins','working','notworking','adjustments','support'].forEach(function(k){ base.reflection[k] = pickStr(base.reflection[k], (inc.reflection||{})[k]); });
+  base.outreach = Math.max(base.outreach||0, inc.outreach||0);
+  base.hubspot  = base.hubspot || inc.hubspot;
+  // weekGoals: per sub-key, keep whichever list has more non-empty goals (inc wins ties).
+  Object.keys(inc.weekGoals||{}).forEach(function(k){
+    if (!base.weekGoals[k] || _nonEmptyGoalCount(inc.weekGoals[k]) >= _nonEmptyGoalCount(base.weekGoals[k])) base.weekGoals[k] = inc.weekGoals[k];
+  });
+  ['health','wealth','creative'].forEach(function(k){
+    if (inc.pillars && inc.pillars[k]) { base.pillars[k].goal = pickStr(base.pillars[k].goal, inc.pillars[k].goal); base.pillars[k].done = base.pillars[k].done || inc.pillars[k].done; }
+  });
+  // day buckets: inc wins per day-key when it carries content; otherwise keep base.
+  ['dayPriorities','dayIntentions','dayRituals','dayUrgent'].forEach(function(bucket){
+    Object.keys(inc[bucket]||{}).forEach(function(k){
+      var v = inc[bucket][k];
+      var nonEmpty = Array.isArray(v)
+        ? v.some(function(x){ return x && (typeof x === 'string' ? x.trim() : (x.text ? (''+x.text).trim() : true)); })
+        : (v && typeof v === 'object' ? Object.keys(v).length : !!v);
+      if (nonEmpty || base[bucket][k] === undefined) base[bucket][k] = v;
+    });
+  });
+  if (inc._fromDate && (!base._fromDate || inc._fromDate > base._fromDate)) base._fromDate = inc._fromDate;
+  return base;
+}
+function migrateToWeeksModel(){
+  if (!S.weeks) S.weeks = {};
+  if (S._weeksMigrated) return;
+  // Migrate weeklyHistory oldest-first; duplicate closes of the same week merge (richest wins).
+  var hist = (S.weeklyHistory || []).slice().reverse();
+  hist.forEach(function(e){
+    var key = mondayKeyFromHistoryEntry(e);
+    if (!key) { console.warn('migrate: skipped weeklyHistory entry', e && (e.week || e.date)); return; }
+    var inc = weekFromHistoryEntry(e, key);
+    if (!S.weeks[key]) S.weeks[key] = inc; else mergeWeekData(S.weeks[key], inc);
+  });
+  // Merge the CURRENT live working state on top of this week's key (freshest wins on non-empty).
+  var curKey = getCurrentMondayKey();
+  ensureWeek(curKey);
+  mergeWeekData(S.weeks[curKey], weekFromLiveState(curKey));
+  S.currentWeekKey = curKey;
+  S.viewWeekKey = curKey;
+  S._weeksMigrated = true;
+  // S.weeklyHistory + the old flat fields are left intact as a backup (per spec).
+  save();
+}
+// Calendar-driven advance. No button — the date dictates the current week.
+function autoAdvanceWeek(){
+  var todayKey = getCurrentMondayKey();
+  if (S.currentWeekKey !== todayKey) {
+    var wasViewingCurrent = !S.viewWeekKey || (S.viewWeekKey === S.currentWeekKey);
+    S.currentWeekKey = todayKey;
+    ensureWeek(todayKey);
+    if (wasViewingCurrent) S.viewWeekKey = todayKey; // else respect where the user navigated
+    save();
+  }
+  if (!S.currentWeekKey) S.currentWeekKey = todayKey;
+  if (!S.viewWeekKey) S.viewWeekKey = S.currentWeekKey;
+  ensureWeek(S.currentWeekKey);
+  ensureWeek(S.viewWeekKey);
+}
+// Weekly Review prev/next navigation.
+function gotoPrevWeek(){ S.viewWeekKey = getPrevMondayKey(S.viewWeekKey); ensureWeek(S.viewWeekKey); save(); renderWeeklyReview(); }
+function gotoNextWeek(){ S.viewWeekKey = getNextMondayKey(S.viewWeekKey); ensureWeek(S.viewWeekKey); save(); renderWeeklyReview(); }
 
 
 // ── MASTER LIST ──────────────────────────────────────────────────
@@ -1124,7 +1318,7 @@ function toggleVoice() {
   voiceRecognition.onend = () => {
     voiceActive=false; icon.textContent='\uD83C\uDF99'; label.textContent='Record';
     btn.style.borderColor=''; bd.classList.remove('voice-recording');
-    S.brainDump=bd.value; save();
+    vw().brainDump=bd.value; save();
   };
   voiceRecognition.start();
 }
@@ -1537,14 +1731,14 @@ const WEEK_PILLARS = [
 ];
 
 function ensureWeekGoals() {
-  if (!S.weekGoals) S.weekGoals = {};
+  var WG = vw().weekGoals;
   WEEK_PILLARS.forEach(function(p) {
-    if (!S.weekGoals[p.key]) S.weekGoals[p.key] = [];
-    if (!S.weekGoals[p.key].length) S.weekGoals[p.key].push({ text: '', done: false, sub: p.subs ? p.subs[0].key : '' });
+    if (!WG[p.key]) WG[p.key] = [];
+    if (!WG[p.key].length) WG[p.key].push({ text: '', done: false, sub: p.subs ? p.subs[0].key : '' });
     if (p.subs) {
       p.subs.forEach(function(s) {
-        if (!S.weekGoals[p.key + '_' + s.key]) S.weekGoals[p.key + '_' + s.key] = [];
-        if (!S.weekGoals[p.key + '_' + s.key].length) S.weekGoals[p.key + '_' + s.key].push({ text: '', done: false });
+        if (!WG[p.key + '_' + s.key]) WG[p.key + '_' + s.key] = [];
+        if (!WG[p.key + '_' + s.key].length) WG[p.key + '_' + s.key].push({ text: '', done: false });
       });
     }
   });
@@ -1555,6 +1749,7 @@ function renderWeeklyGoals() {
   if (!el) return;
   el.innerHTML = '';
   ensureWeekGoals();
+  var WG = vw().weekGoals;
 
   WEEK_PILLARS.forEach(function(p) {
     var block = document.createElement('div');
@@ -1586,7 +1781,7 @@ function renderWeeklyGoals() {
         subLabel.textContent = sub.label;
         subWrap.appendChild(subLabel);
 
-        (S.weekGoals[subKey] || []).forEach(function(g, gi) {
+        (WG[subKey] || []).forEach(function(g, gi) {
           subWrap.appendChild(makeGoalRow(subKey, gi, p.color, sub.label + ' goal...'));
         });
 
@@ -1595,8 +1790,9 @@ function renderWeeklyGoals() {
         addBtn.style.cssText = 'font-size:11px;margin-top:4px';
         addBtn.textContent = '+ Add ' + sub.label + ' goal';
         addBtn.onclick = (function(k){ return function(){
-          if (!S.weekGoals[k]) S.weekGoals[k] = [];
-          S.weekGoals[k].push({ text: '', done: false });
+          var g = vw().weekGoals;
+          if (!g[k]) g[k] = [];
+          g[k].push({ text: '', done: false });
           save(); renderWeeklyGoals();
         }; })(subKey);
         subWrap.appendChild(addBtn);
@@ -1604,7 +1800,7 @@ function renderWeeklyGoals() {
       });
     } else {
       // Health / Wealth / Creativity — simple goal list
-      (S.weekGoals[p.key] || []).forEach(function(g, gi) {
+      (WG[p.key] || []).forEach(function(g, gi) {
         block.appendChild(makeGoalRow(p.key, gi, p.color, p.label + ' goal this week...'));
       });
       var addBtn = document.createElement('button');
@@ -1612,8 +1808,9 @@ function renderWeeklyGoals() {
       addBtn.style.cssText = 'font-size:11px;margin-top:6px';
       addBtn.textContent = '+ Add goal';
       addBtn.onclick = (function(k){ return function(){
-        if (!S.weekGoals[k]) S.weekGoals[k] = [];
-        S.weekGoals[k].push({ text: '', done: false });
+        var g = vw().weekGoals;
+        if (!g[k]) g[k] = [];
+        g[k].push({ text: '', done: false });
         save(); renderWeeklyGoals();
       }; })(p.key);
       block.appendChild(addBtn);
@@ -1626,30 +1823,33 @@ function renderWeeklyGoals() {
 }
 
 function makeGoalRow(pillarKey, goalIdx, color, placeholder) {
+  var WG = vw().weekGoals;
   var row = document.createElement('div');
   row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:6px';
 
   var chk = document.createElement('div');
-  chk.className = 'goal-check' + (S.weekGoals[pillarKey][goalIdx].done ? ' done' : '');
+  chk.className = 'goal-check' + (WG[pillarKey][goalIdx].done ? ' done' : '');
   chk.innerHTML = '&#10003;';
   chk.style.cssText = 'width:18px;height:18px;border:1px solid #ccc;border-radius:4px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent;user-select:none';
-  if (S.weekGoals[pillarKey][goalIdx].done) { chk.style.background = '#3a9e6a'; chk.style.borderColor = '#3a9e6a'; chk.style.color = 'white'; }
+  if (WG[pillarKey][goalIdx].done) { chk.style.background = '#3a9e6a'; chk.style.borderColor = '#3a9e6a'; chk.style.color = 'white'; }
   chk.onclick = (function(k, i){ return function(){
-    S.weekGoals[k][i].done = !S.weekGoals[k][i].done; save(); renderWeeklyGoals();
+    var g = vw().weekGoals;
+    g[k][i].done = !g[k][i].done; save(); renderWeeklyGoals();
   }; })(pillarKey, goalIdx);
 
   var inp = document.createElement('input');
   inp.type = 'text'; inp.className = 'goal-input';
-  inp.value = S.weekGoals[pillarKey][goalIdx].text || '';
+  inp.value = WG[pillarKey][goalIdx].text || '';
   inp.placeholder = placeholder;
-  if (S.weekGoals[pillarKey][goalIdx].done) inp.classList.add('done');
-  inp.oninput = (function(k, i){ return function(){ S.weekGoals[k][i].text = this.value; save(); updateWeekGoalMetrics(); }; })(pillarKey, goalIdx);
+  if (WG[pillarKey][goalIdx].done) inp.classList.add('done');
+  inp.oninput = (function(k, i){ return function(){ vw().weekGoals[k][i].text = this.value; save(); updateWeekGoalMetrics(); }; })(pillarKey, goalIdx);
 
   var del = document.createElement('span');
   del.style.cssText = 'font-size:15px;color:var(--border2);cursor:pointer;flex-shrink:0';
   del.innerHTML = '&times;';
   del.onclick = (function(k, i){ return function(){
-    if (S.weekGoals[k].length > 1) { S.weekGoals[k].splice(i, 1); save(); renderWeeklyGoals(); }
+    var g = vw().weekGoals;
+    if (g[k].length > 1) { g[k].splice(i, 1); save(); renderWeeklyGoals(); }
   }; })(pillarKey, goalIdx);
 
   row.appendChild(chk); row.appendChild(inp); row.appendChild(del);
@@ -1658,9 +1858,10 @@ function makeGoalRow(pillarKey, goalIdx, color, placeholder) {
 
 function updateWeekGoalMetrics() {
   var total = 0, done = 0;
-  if (!S.weekGoals) return;
-  Object.keys(S.weekGoals).forEach(function(k) {
-    (S.weekGoals[k] || []).forEach(function(g) {
+  var WG = vw().weekGoals;
+  if (!WG) return;
+  Object.keys(WG).forEach(function(k) {
+    (WG[k] || []).forEach(function(g) {
       if (g.text && g.text.trim()) { total++; if (g.done) done++; }
     });
   });
@@ -1879,19 +2080,22 @@ function approveAllTriage() {
       });
     } else if (item.type === 'goal') {
       var pk = item.pillar === 'goodwolf' ? ('goodwolf_' + (item.sub||'sales')) : item.pillar;
-      if (!S.weekGoals) S.weekGoals = {};
-      if (!S.weekGoals[pk]) S.weekGoals[pk] = [];
-      S.weekGoals[pk].push({ text: item.text, done: false });
+      // Triage always targets the calendar's CURRENT week, not the view week.
+      var CWG = cw().weekGoals;
+      if (!CWG[pk]) CWG[pk] = [];
+      CWG[pk].push({ text: item.text, done: false });
     }
     // 'note' type: skip for now, just informational
   });
+  // Clear the current week's brain dump after successful triage.
+  cw().brainDump = '';
   save();
   closeTriage();
   renderMasterList();
-  renderWeeklyGoals();
-  // Clear brain dump after successful triage
+  renderWeeklyReview();
+  // Clear the on-screen brain dump only if we're viewing the week we just triaged.
   var bd = document.getElementById('brain-dump');
-  if (bd) { bd.value = ''; S.brainDump = ''; save(); }
+  if (bd && S.viewWeekKey === S.currentWeekKey) bd.value = '';
 }
 
 function closeTriage() {
@@ -1913,22 +2117,17 @@ function renderCountdowns() {
 }
 
 function init() {
+  // Build/refresh the keyed week timeline before anything reads it.
+  migrateToWeeksModel();
+  autoAdvanceWeek();
   const wn = getWeekNum();
-  // Week-label snapshot: lock the label on first load of a fresh week so Close the Week
-  // archives under the correct label regardless of what day close is clicked.
-  if (!S.currentWeekLabel) {
-    S.currentWeekLabel = 'Week of ' + getWeekLabel();
-    save();
-  }
-  var wlEl = document.getElementById('week-label'); if(wlEl) wlEl.textContent = S.currentWeekLabel;
+  // The top header always shows the calendar's current week (not the view week).
+  var wlEl = document.getElementById('week-label'); if(wlEl) wlEl.textContent = getWeekLabelForKey(S.currentWeekKey);
   var wmEl = document.getElementById('week-meta'); if(wmEl) wmEl.textContent = 'Week ' + wn + ' of 13 — Q2 2026';
   var wnum = document.getElementById('m-week-num'); if(wnum) wnum.textContent = wn;
   var qpct = document.getElementById('q-pct'); if(qpct) qpct.textContent = Math.round(wn/13*100) + '%';
   var qbar = document.getElementById('quarter-bar'); if(qbar) qbar.style.width = (wn/13*100) + '%';
   renderCountdowns();
-
-  const bd = document.getElementById('brain-dump');
-  if (bd) { bd.value = S.brainDump || ''; bd.addEventListener('input', function(e){ S.brainDump = e.target.value; save(); }); }
 
   const mt = document.getElementById('monthly-target');
   if (mt) { mt.value = S.monthlyTarget || ''; mt.addEventListener('input', function(e){ S.monthlyTarget = e.target.value; save(); }); }
@@ -1966,36 +2165,30 @@ function init() {
   if (needsSave) localStorage.setItem('idealWeek_v3', JSON.stringify(S));
   renderPillars();
   renderAllAreaGoals();
-  renderWeeklyGoals();
-  var oSelf = document.getElementById('open-self');
-  if (oSelf) { oSelf.value = S.openSelf || ''; }
-  var oSupport = document.getElementById('open-support');
-  if (oSupport) { oSupport.value = S.openSupport || ''; }
+  renderWeeklyReview();
   renderDaySelector();
   renderQObjs();
-  updateMetrics();
 }
 
 function updateMetrics() {
-  const pillars = ['health','wealth','creative'];
-  const set = pillars.filter(k => S.pillars[k].goal.trim()).length;
-  const done = pillars.filter(k => S.pillars[k].done && S.pillars[k].goal.trim()).length;
-  var gsEl = document.getElementById('m-goals-set'); if(gsEl) gsEl.textContent = set;
-  var gdEl = document.getElementById('m-goals-done'); if(gdEl) gdEl.textContent = done;
+  // The Goals set/done metric now reflects the view week's weekly goals.
+  updateWeekGoalMetrics();
 }
 
-function savePillarGoal(key, val) { S.pillars[key].goal = val; save(); updateMetrics(); }
-function savePillarSub(key, val) { S.pillars[key].sub = val; save(); }
+function savePillarGoal(key, val) { vw().pillars[key].goal = val; save(); updateMetrics(); }
+function savePillarSub(key, val) { vw().pillars[key].sub = val; save(); }
 function togglePillarDone(key) {
-  S.pillars[key].done = !S.pillars[key].done;
+  var p = vw().pillars[key];
+  p.done = !p.done;
   save();
   renderPillars();
   updateMetrics();
 }
 
 function renderPillars() {
+  var WP = vw().pillars;
   ['health','wealth','creative'].forEach(key => {
-    const p = S.pillars[key];
+    const p = WP[key];
     const goalEl = document.getElementById('goal-' + key);
     const subEl = document.getElementById('sub-' + key);
     const checkEl = document.getElementById('check-' + key);
@@ -2062,8 +2255,9 @@ function showDayDetail(key) {
   var d = DAYS.find(function(x){ return x.key === key; });
   // Use date-based key for storage, fall back to weekday key for legacy data
   var dateKey = dayKeyFromWeekday(key);
-  var dp = S.dayPriorities[dateKey] || S.dayPriorities[key] || [];
-  var intention = S.dayIntentions[dateKey] || S.dayIntentions[key] || '';
+  var C = cw();
+  var dp = C.dayPriorities[dateKey] || C.dayPriorities[key] || [];
+  var intention = C.dayIntentions[dateKey] || C.dayIntentions[key] || '';
   var detail = document.getElementById('day-detail');
   detail.innerHTML = '';
 
@@ -2185,7 +2379,8 @@ function makeRitualSection(key, rk) {
   lbl.textContent = RITUAL_LABELS[rk];
   wrap.appendChild(lbl);
   const items = RITUALS[rk];
-  const dayRituals = (S.dayRituals[key] && S.dayRituals[key][rk]) || {};
+  const _dr = cw().dayRituals;
+  const dayRituals = (_dr[key] && _dr[key][rk]) || {};
   items.forEach((label, idx) => {
     const row = document.createElement('div'); row.className = 'ritual-item';
     const chk = document.createElement('div');
@@ -2207,7 +2402,8 @@ function makeRitualSection(key, rk) {
 function renderUrgentList(key) {
   const el = document.getElementById('urgent-list-' + key);
   if (!el) return;
-  const items = (S.dayUrgent && S.dayUrgent[key]) || [];
+  const DU = cw().dayUrgent;
+  const items = DU[key] || [];
   el.innerHTML = '';
   if (!items.length) {
     const empty = document.createElement('div');
@@ -2238,35 +2434,38 @@ function addUrgentItem(key) {
   if (!input) return;
   const text = input.value.trim();
   if (!text) return;
-  if (!S.dayUrgent) S.dayUrgent = {};
-  if (!S.dayUrgent[key]) S.dayUrgent[key] = [];
-  S.dayUrgent[key].push({ text, done: false });
+  var DU = cw().dayUrgent;
+  if (!DU[key]) DU[key] = [];
+  DU[key].push({ text, done: false });
   save();
   input.value = '';
   renderUrgentList(key);
 }
 
 function toggleUrgentItem(key, i) {
+  var DU = cw().dayUrgent;
   var dateKey = dayKeyFromWeekday(key);
-  var items = S.dayUrgent && (S.dayUrgent[dateKey] || S.dayUrgent[key]);
+  var items = DU[dateKey] || DU[key];
   if (!items) return;
-  var storeKey = S.dayUrgent[dateKey] ? dateKey : key;
-  S.dayUrgent[storeKey][i].done = !S.dayUrgent[storeKey][i].done;
+  var storeKey = DU[dateKey] ? dateKey : key;
+  DU[storeKey][i].done = !DU[storeKey][i].done;
   save();
   renderUrgentList(key);
 }
 
 function deleteUrgentItem(key, i) {
+  var DU = cw().dayUrgent;
   var dateKey = dayKeyFromWeekday(key);
-  var storeKey = (S.dayUrgent && S.dayUrgent[dateKey]) ? dateKey : key;
-  if (!S.dayUrgent || !S.dayUrgent[storeKey]) return;
-  S.dayUrgent[storeKey].splice(i, 1);
+  var storeKey = DU[dateKey] ? dateKey : key;
+  if (!DU[storeKey]) return;
+  DU[storeKey].splice(i, 1);
   save();
   renderUrgentList(key);
 }
 
 function sendUrgentToTaskList(key) {
-  const items = (S.dayUrgent && S.dayUrgent[key]) || [];
+  const DU = cw().dayUrgent;
+  const items = DU[key] || [];
   const unchecked = items.filter(i => !i.done);
   if (!unchecked.length) { alert('No unchecked tasks to send.'); return; }
   if (!S.masterItems) S.masterItems = [];
@@ -2289,7 +2488,7 @@ function sendUrgentToTaskList(key) {
     });
   });
   // Remove sent items from urgent list
-  S.dayUrgent[key] = items.filter(i => i.done);
+  DU[key] = items.filter(i => i.done);
   save();
   renderUrgentList(key);
   const status = document.createElement('div');
@@ -2301,31 +2500,64 @@ function sendUrgentToTaskList(key) {
 }
 
 function toggleRitual(dayKey, ritualKey, idx, el) {
-  if (!S.dayRituals[dayKey]) S.dayRituals[dayKey] = {};
-  if (!S.dayRituals[dayKey][ritualKey]) S.dayRituals[dayKey][ritualKey] = {};
-  const current = !!S.dayRituals[dayKey][ritualKey][idx];
-  S.dayRituals[dayKey][ritualKey][idx] = !current;
+  var DR = cw().dayRituals;
+  if (!DR[dayKey]) DR[dayKey] = {};
+  if (!DR[dayKey][ritualKey]) DR[dayKey][ritualKey] = {};
+  const current = !!DR[dayKey][ritualKey][idx];
+  DR[dayKey][ritualKey][idx] = !current;
   save();
   const label = el.nextElementSibling;
   el.classList.toggle('done', !current);
   label.classList.toggle('done', !current);
 }
 
-function saveIntention(key, val) { S.dayIntentions[key] = val; save(); }
-function saveP(day, idx, val) { if (!S.dayPriorities[day]) S.dayPriorities[day] = []; S.dayPriorities[day][idx] = val; save(); }
+function saveIntention(key, val) { cw().dayIntentions[key] = val; save(); }
+function saveP(day, idx, val) { var C = cw(); if (!C.dayPriorities[day]) C.dayPriorities[day] = []; C.dayPriorities[day][idx] = val; save(); }
 
-function renderClose() {
-  renderGoalsReview();
-  var ref = S.reflection || {};
+// Renders the Weekly Review panel for whatever S.viewWeekKey points at.
+function renderWeeklyReview() {
+  var W = vw();
+  // Nav chrome
+  var lbl = document.getElementById('wr-week-label');
+  if (lbl) lbl.textContent = getWeekLabelForKey(S.viewWeekKey);
+  var prevBtn = document.getElementById('wr-prev');
+  if (prevBtn) {
+    // Disable prev only when there is no earlier week stored to navigate back to.
+    var hasEarlier = Object.keys(S.weeks || {}).some(function(k){ return k < S.viewWeekKey; });
+    prevBtn.disabled = !hasEarlier;
+    prevBtn.style.opacity = hasEarlier ? '1' : '0.35';
+    prevBtn.style.cursor = hasEarlier ? 'pointer' : 'default';
+  }
+  // Context hint: are we looking at history or the future?
+  var hint = document.getElementById('wr-context-hint');
+  if (hint) {
+    if (S.viewWeekKey < S.currentWeekKey) { hint.textContent = 'Viewing a past week'; hint.style.display = 'inline-block'; }
+    else if (S.viewWeekKey > S.currentWeekKey) { hint.textContent = 'Planning a future week'; hint.style.display = 'inline-block'; }
+    else { hint.style.display = 'none'; }
+  }
+  // Brain dump (view week)
+  var bd = document.getElementById('brain-dump');
+  if (bd) { bd.value = W.brainDump || ''; bd.oninput = function(){ vw().brainDump = this.value; save(); }; }
+  // Weekly goals + the Goals set/done metric
+  renderWeeklyGoals();
+  // Reflection (5 prompts)
+  var ref = W.reflection || {};
   ['wins','working','notworking','adjustments','support'].forEach(function(k) {
     var el = document.getElementById('ref-' + k);
     if (el) el.value = ref[k] || '';
   });
-  var hc2 = document.getElementById('hubspot-check'); if(hc2) hc2.checked = S.hubspot;
-  var on2 = document.getElementById('outreach-num'); if(on2) on2.textContent = S.outreach;
-  var co2 = document.getElementById('close-outreach'); if(co2) co2.textContent = S.outreach;
-  var hv2 = document.getElementById('close-hubspot-val');
-  if(hv2) { hv2.textContent = S.hubspot ? 'Done' : 'Pending'; hv2.style.color = S.hubspot ? 'var(--green-light)' : 'var(--muted)'; }
+  // New business contacts + HubSpot true-up
+  var on2 = document.getElementById('outreach-num'); if(on2) on2.textContent = W.outreach || 0;
+  var hc2 = document.getElementById('hubspot-check'); if(hc2) hc2.checked = !!W.hubspot;
+  var hv2 = document.getElementById('hubspot-status');
+  if(hv2) { hv2.textContent = W.hubspot ? 'Trued up ✓' : 'Pending'; hv2.style.color = W.hubspot ? 'var(--green-light)' : 'var(--muted)'; }
+  // Next week · one focus
+  var nf = document.getElementById('wr-next-focus'); if(nf) nf.value = W.nextWeekFocus || '';
+  // Weekly intention (preserved from the old Open the Week)
+  var oSelf = document.getElementById('open-self'); if(oSelf) oSelf.value = W.openSelf || '';
+  var oSupport = document.getElementById('open-support'); if(oSupport) oSupport.value = W.openSupport || '';
+  // Keep pillar state in sync (no dedicated UI today).
+  renderPillars();
 }
 
 function renderWins() {
@@ -2396,99 +2628,25 @@ function renderGoalsReview() {
 }
 
 function adjustOutreach(d) {
-  S.outreach = Math.max(0,(S.outreach||0)+d); save();
-  var on = document.getElementById('outreach-num'); if(on) on.textContent = S.outreach;
-  var co = document.getElementById('close-outreach'); if(co) co.textContent = S.outreach;
+  var W = vw();
+  W.outreach = Math.max(0,(W.outreach||0)+d); save();
+  var on = document.getElementById('outreach-num'); if(on) on.textContent = W.outreach;
 }
 function saveReflection(key, val) {
-  if (!S.reflection) S.reflection = {};
-  S.reflection[key] = val; save();
+  vw().reflection[key] = val; save();
 }
+function saveNextFocus(val) { vw().nextWeekFocus = val; save(); }
+function saveOpenSelf(val) { vw().openSelf = val; save(); }
+function saveOpenSupport(val) { vw().openSupport = val; save(); }
 
 function saveHubspot() {
-  var hc = document.getElementById('hubspot-check'); if(hc) S.hubspot = hc.checked; save();
-  var hv = document.getElementById('close-hubspot-val');
-  if(hv) { hv.textContent = S.hubspot?'Done':'Pending'; hv.style.color = S.hubspot?'var(--green-light)':'var(--muted)'; }
+  var W = vw();
+  var hc = document.getElementById('hubspot-check'); if(hc) W.hubspot = hc.checked; save();
+  var hv = document.getElementById('hubspot-status');
+  if(hv) { hv.textContent = W.hubspot?'Trued up ✓':'Pending'; hv.style.color = W.hubspot?'var(--green-light)':'var(--muted)'; }
 }
-function closeWeek() {
-  // Count all weekGoals across all pillars + sub-categories
-  var done = 0, total = 0;
-  if (S.weekGoals) {
-    Object.keys(S.weekGoals).forEach(function(k){
-      (S.weekGoals[k] || []).forEach(function(g){
-        if (g && g.text && g.text.trim()) {
-          total++;
-          if (g.done) done++;
-        }
-      });
-    });
-  }
-  // Promote unfinished urgent items to Master Task List so they don't get lost on reset
-  var promoted = 0;
-  if (S.dayUrgent) {
-    Object.keys(S.dayUrgent).forEach(function(dayKey){
-      (S.dayUrgent[dayKey] || []).forEach(function(it){
-        if (it && !it.done && it.text && it.text.trim()) {
-          if (!S.masterItems) S.masterItems = [];
-          S.masterItems.unshift({
-            id: 'urg_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
-            text: it.text,
-            pillar: 'goodwolf',
-            sub: '',
-            done: false,
-            addDate: new Date().toISOString().split('T')[0],
-            dueDate: defaultDueDateForCategory('goodwolf', ''),
-            recur: ''
-          });
-          promoted++;
-        }
-      });
-    });
-  }
-  // Archive the week's full state
-  if (!S.weeklyHistory) S.weeklyHistory = [];
-  var pillars = ['health','wealth','creative'];
-  var weekSnapshot = {
-    week: S.currentWeekLabel || (document.getElementById('week-label') ? document.getElementById('week-label').textContent : ''),
-    date: new Date().toISOString().split('T')[0],
-    goals: pillars.map(function(k){ return { pillar:k, goal:S.pillars[k].goal, done:S.pillars[k].done }; }),
-    outreach: S.outreach || 0,
-    reflection: JSON.parse(JSON.stringify(S.reflection || {})),
-    weekGoals: JSON.parse(JSON.stringify(S.weekGoals || {})),
-    brainDump: S.brainDump || '',
-    openSelf: S.openSelf || '',
-    openSupport: S.openSupport || '',
-    dayPriorities: JSON.parse(JSON.stringify(S.dayPriorities || {})),
-    dayIntentions: JSON.parse(JSON.stringify(S.dayIntentions || {})),
-    dayUrgent: JSON.parse(JSON.stringify(S.dayUrgent || {})),
-    dayRituals: JSON.parse(JSON.stringify(S.dayRituals || {}))
-  };
-  S.weeklyHistory.unshift(weekSnapshot);
-  pushToArchive({ type: 'week', data: weekSnapshot });
-  // Reset weekly fields for a fresh week
-  pillars.forEach(function(k){ S.pillars[k].done = false; S.pillars[k].goal = ''; });
-  S.outreach = 0; S.hubspot = false;
-  S.reflection = { wins:'', working:'', notworking:'', adjustments:'', support:'' };
-  S.brainDump = '';
-  S.openSelf = '';
-  S.openSupport = '';
-  S.dayPriorities = { mon:['','',''], tue:['','',''], wed:['','',''], thu:['','',''], fri:['','',''], sat:['','',''] };
-  S.dayIntentions = {};
-  S.dayUrgent = {};
-  S.dayRituals = {};
-  S.currentWeekLabel = '';  // clear so init() snapshots a fresh label next load
-  if (S.weekGoals) {
-    Object.keys(S.weekGoals).forEach(function(k){
-      (S.weekGoals[k] || []).forEach(function(g){ if (g) { g.text = ''; g.done = false; } });
-    });
-  }
-  save();
-  var msg = 'Week closed and archived. ' + done + ' of ' + total + ' goals complete.';
-  if (promoted > 0) msg += ' ' + promoted + ' unfinished urgent item' + (promoted === 1 ? '' : 's') + ' moved to Master Task List.';
-  msg += ' See you Sunday.';
-  alert(msg);
-  location.reload();
-}
+// closeWeek() removed in the Weekly Review rebuild — weeks now persist in S.weeks
+// and the calendar auto-advances S.currentWeekKey. Nothing destructive happens.
 
 function renderQObjs() {
   const el = document.getElementById('q-objs-list'); if (!el) return;
@@ -2508,8 +2666,8 @@ function addQObj() { if (!S.qObjs) S.qObjs=[]; if (S.qObjs.length>=5) return; S.
 function switchTab(id) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  ['open','days','close','master','framework'].forEach((t,i) => { if(t===id) { document.querySelectorAll('.tab')[i].classList.add('active'); document.getElementById('panel-'+t).classList.add('active'); } });
-  if (id==='close') renderClose();
+  ['weekly-review','days','master','framework'].forEach((t,i) => { if(t===id) { document.querySelectorAll('.tab')[i].classList.add('active'); document.getElementById('panel-'+t).classList.add('active'); } });
+  if (id==='weekly-review') renderWeeklyReview();
   if (id==='days') renderDaySelector();
   if (id==='framework') {
     renderQObjs(); renderMonthlyTargets(); renderActionPlan(); renderMonthlyReviews(); renderArchive();
