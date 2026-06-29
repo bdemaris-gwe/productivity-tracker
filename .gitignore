@@ -5,3 +5,8 @@
 
 # OS / editor cruft
 .DS_Store
+
+# Local-only review/planning workspace (personal data + JSONbin keys).
+# Lives alongside the app but is NOT part of the deployed product and
+# must never be pushed to GitHub.
+review/
