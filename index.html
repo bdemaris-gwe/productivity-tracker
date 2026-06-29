@@ -2791,6 +2791,25 @@ async function pushSync() {
   if (!jbBin()||!jbKey()) return;
   setSyncBar('syncing');
   try {
+    // Freshness guard: never clobber a newer remote (another device, or an external
+    // plan import). Re-fetch latest first; if the server is newer than our state,
+    // ADOPT it instead of overwriting. This is what stops stale tabs from wiping good data.
+    try {
+      const chk = await fetch(`https://api.jsonbin.io/v3/b/${jbBin()}/latest`,{headers:jbHeaders()});
+      if (chk.ok) {
+        const rec = (await chk.json()).record;
+        if (rec && typeof rec._lastSaved === 'number' && rec._lastSaved > (S._lastSaved || 0)) {
+          S = rec;
+          ensureState();
+          localStorage.setItem('idealWeek_v3', JSON.stringify(S));
+          const ts2 = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+          setSyncBar('saved', ts2);
+          try { init(); } catch(e) {}
+          return; // adopted newer remote — nothing to push
+        }
+      }
+    } catch(e) { /* if the freshness check fails, fall through to a normal push */ }
+
     const res = await fetch(`https://api.jsonbin.io/v3/b/${jbBin()}`,{method:'PUT',headers:jbHeaders(),body:JSON.stringify(S)});
     if (!res.ok) throw new Error('HTTP '+res.status);
     const ts = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
