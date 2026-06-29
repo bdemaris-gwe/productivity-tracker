@@ -354,6 +354,14 @@
         </div>
       </div>
       <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px">
+          <button class="btn btn-sm" onclick="stepActiveWeek(-1)" title="Previous week">&lsaquo;</button>
+          <div style="text-align:center;flex:1">
+            <div style="font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:.04em">PLANNING WEEK</div>
+            <div id="active-week-label" style="font-size:13px;color:var(--text)"></div>
+          </div>
+          <button class="btn btn-sm" onclick="stepActiveWeek(1)" title="Next week">&rsaquo;</button>
+        </div>
         <button class="btn" style="width:100%" onclick="closeWeekAndStartFresh()">Close the Week &amp; Start Fresh &rarr;</button>
         <div style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center;line-height:1.4">Sweeps unfinished priorities &amp; urgent tasks to the Master List, then opens next week to plan.</div>
       </div>
@@ -2129,6 +2137,7 @@ function init() {
   const wn = getWeekNum();
   // The top header always shows the calendar's current week (not the view week).
   var wlEl = document.getElementById('week-label'); if(wlEl) wlEl.textContent = getWeekLabelForKey(S.currentWeekKey);
+  var awlEl = document.getElementById('active-week-label'); if(awlEl) awlEl.textContent = getWeekLabelForKey(S.currentWeekKey);
   var wmEl = document.getElementById('week-meta'); if(wmEl) wmEl.textContent = 'Week ' + wn + ' of 13 — Q2 2026';
   var wnum = document.getElementById('m-week-num'); if(wnum) wnum.textContent = wn;
   var qpct = document.getElementById('q-pct'); if(qpct) qpct.textContent = Math.round(wn/13*100) + '%';
@@ -2560,6 +2569,19 @@ function collectUnfinished(C){
     (DU[k] || []).forEach(function(u){ if (u && u.text && u.text.trim() && !u.done) out.push(u.text.trim()); });
   });
   return out;
+}
+
+// Move the active "planning week" (the week the Daily schedule + Close act on) backward
+// or forward by one week. Keeps the current + view pointers in lockstep so there's a
+// single, unambiguous working week.
+function stepActiveWeek(dir){
+  var base = S.currentWeekKey || getCurrentMondayKey();
+  var k = dir < 0 ? getPrevMondayKey(base) : getNextMondayKey(base);
+  S.currentWeekKey = k;
+  S.viewWeekKey = k;
+  ensureWeek(k);
+  save();
+  init();
 }
 
 // Manual week close — the primary way the week advances. Sweeps unfinished items to the
