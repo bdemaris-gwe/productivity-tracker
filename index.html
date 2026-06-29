@@ -353,24 +353,10 @@
           <div class="outreach-label">new business<br>contacts</div>
         </div>
       </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Weekly intention</div>
-      <div class="reflection-block" style="margin-bottom:14px;padding-bottom:14px">
-        <div class="reflection-label">What do you need from yourself to be successful this week?</div>
-        <textarea id="open-self" rows="2" placeholder="Mindset, habits, standards you're committing to..." oninput="saveOpenSelf(this.value)"></textarea>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+        <button class="btn" style="width:100%" onclick="closeWeekAndStartFresh()">Close the Week &amp; Start Fresh &rarr;</button>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center;line-height:1.4">Sweeps unfinished priorities &amp; urgent tasks to the Master List, then opens next week to plan.</div>
       </div>
-      <div class="reflection-block" style="margin-bottom:0;padding-bottom:0;border-bottom:none">
-        <div class="reflection-label">What external support do you need to be successful this week?</div>
-        <textarea id="open-support" rows="2" placeholder="People, resources, coaching, accountability..." oninput="saveOpenSupport(this.value)"></textarea>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Next week &middot; one focus</div>
-      <div style="font-size:12px;color:var(--subtle);margin-bottom:10px;font-style:italic">Carry one thing forward. Use &rarr; next to start drafting next week.</div>
-      <textarea id="wr-next-focus" rows="3" placeholder="One thing to do differently or double down on next week..." oninput="saveNextFocus(this.value)"></textarea>
     </div>
 
   </div>
@@ -882,6 +868,21 @@ function getWeekLabelForKey(key){
 function getPrevMondayKey(key){ var d = dateFromKey(key); d.setDate(d.getDate() - 7); return _ymd(d); }
 function getNextMondayKey(key){ var d = dateFromKey(key); d.setDate(d.getDate() + 7); return _ymd(d); }
 
+// Daily priorities carry a done-state now: { text, done }. Helpers below build and
+// normalize that shape, and migrate legacy string-array data ('' -> {text:'',done:false}).
+function pRow(text){ return { text: text || '', done: false }; }
+function pRow3(){ return [pRow(), pRow(), pRow()]; }
+function normalizePRows(arr){
+  var out = [pRow(), pRow(), pRow()];
+  if (Array.isArray(arr)) {
+    for (var i = 0; i < 3; i++) {
+      var v = arr[i];
+      if (typeof v === 'string') out[i] = pRow(v);
+      else if (v && typeof v === 'object') { out[i] = pRow(v.text); out[i].done = !!v.done; }
+    }
+  }
+  return out;
+}
 function emptyWeek(key){
   return {
     label: key ? getWeekLabelForKey(key) : '',
@@ -893,7 +894,7 @@ function emptyWeek(key){
     openSupport: '',
     outreach: 0,
     hubspot: false,
-    dayPriorities: { mon:['','',''], tue:['','',''], wed:['','',''], thu:['','',''], fri:['','',''], sat:['','',''] },
+    dayPriorities: { mon:pRow3(), tue:pRow3(), wed:pRow3(), thu:pRow3(), fri:pRow3(), sat:pRow3() },
     dayIntentions: {},
     dayRituals: {},
     dayUrgent: {},
@@ -913,7 +914,8 @@ function ensureWeek(key){
   if (w.outreach === undefined) w.outreach = 0;
   if (w.hubspot === undefined) w.hubspot = false;
   if (!w.dayPriorities) w.dayPriorities = {};
-  ['mon','tue','wed','thu','fri','sat'].forEach(function(k){ if(!Array.isArray(w.dayPriorities[k])) w.dayPriorities[k] = ['','','']; });
+  Object.keys(w.dayPriorities).forEach(function(k){ w.dayPriorities[k] = normalizePRows(w.dayPriorities[k]); });
+  ['mon','tue','wed','thu','fri','sat'].forEach(function(k){ if(!Array.isArray(w.dayPriorities[k])) w.dayPriorities[k] = pRow3(); });
   if (!w.dayIntentions) w.dayIntentions = {};
   if (!w.dayRituals) w.dayRituals = {};
   if (!w.dayUrgent) w.dayUrgent = {};
@@ -1043,17 +1045,20 @@ function migrateToWeeksModel(){
   // S.weeklyHistory + the old flat fields are left intact as a backup (per spec).
   save();
 }
-// Calendar-driven advance. No button — the date dictates the current week.
+// Manual "Close the Week" is the primary mechanism (closeWeekAndStartFresh).
+// This is only a safety net: if the pointer has drifted 2+ weeks behind the real
+// calendar week (e.g. the app sat unopened/unclosed), jump forward so data isn't stranded.
 function autoAdvanceWeek(){
   var todayKey = getCurrentMondayKey();
-  if (S.currentWeekKey !== todayKey) {
+  if (!S.currentWeekKey) S.currentWeekKey = todayKey;
+  var weeksBehind = Math.round((dateFromKey(todayKey) - dateFromKey(S.currentWeekKey)) / (7 * 24 * 3600 * 1000));
+  if (weeksBehind >= 2) {
     var wasViewingCurrent = !S.viewWeekKey || (S.viewWeekKey === S.currentWeekKey);
     S.currentWeekKey = todayKey;
     ensureWeek(todayKey);
     if (wasViewingCurrent) S.viewWeekKey = todayKey; // else respect where the user navigated
     save();
   }
-  if (!S.currentWeekKey) S.currentWeekKey = todayKey;
   if (!S.viewWeekKey) S.viewWeekKey = S.currentWeekKey;
   ensureWeek(S.currentWeekKey);
   ensureWeek(S.viewWeekKey);
@@ -1068,7 +1073,8 @@ const PILLAR_PILL = {
   health:   { bg:'#e8f5ee', color:'#2a7a4a', border:'#b8dfc8', label:'Health' },
   wealth:   { bg:'#fdf3e3', color:'#9a5f1a', border:'#f0d9a8', label:'Wealth' },
   creative: { bg:'#f0ecf8', color:'#5a4a8a', border:'#c8b8e8', label:'Creativity' },
-  goodwolf: { bg:'#e8f0fa', color:'#2a5a9a', border:'#b0c8ec', label:'Good Wolf' }
+  goodwolf: { bg:'#e8f0fa', color:'#2a5a9a', border:'#b0c8ec', label:'Good Wolf' },
+  unsorted: { bg:'#eceff1', color:'#5a6b78', border:'#cfd8dd', label:'Unsorted' }
 };
 const GW_SUBS = ['sales','marketing','production','accounting','admin','legal'];
 
@@ -1458,7 +1464,7 @@ function renderMasterList() {
 }
 
 function makeMasterRow(item) {
-  const pill=PILLAR_PILL[item.pillar]||PILLAR_PILL.someday;
+  const pill=PILLAR_PILL[item.pillar]||PILLAR_PILL.unsorted;
   const overdue=isOverdue(item.dueDate)&&!item.done;
   const addTxt=item.addDate?'Added '+fmtDate(item.addDate):'';
   const subLabel=item.sub?item.sub.charAt(0).toUpperCase()+item.sub.slice(1):'';
@@ -2273,11 +2279,30 @@ function showDayDetail(key) {
     var tl = document.createElement('span'); tl.className = 'time-label';
     var badge = document.createElement('span'); badge.className = 'p-badge ' + cls;
     badge.style.fontSize = '10px'; badge.textContent = label; tl.appendChild(badge);
+
+    var item = (dp[idx] && typeof dp[idx] === 'object') ? dp[idx] : { text: (dp[idx] || ''), done: false };
+
+    var cell = document.createElement('span'); cell.className = 'time-content';
+    cell.style.cssText = 'flex:1;display:flex;align-items:center;gap:8px';
+
+    var chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = !!item.done;
+    chk.style.cssText = 'width:15px;height:15px;flex:none;cursor:pointer';
+
     var inp = document.createElement('input'); inp.type = 'text';
-    inp.value = dp[idx] || ''; inp.placeholder = ph;
+    inp.value = item.text || ''; inp.placeholder = ph;
     inp.style.cssText = 'flex:1;font-size:13px;background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:4px 0;color:var(--text)';
-    inp.oninput = (function(i){ return function(){ saveP(key, i, this.value); }; })(idx);
-    row.appendChild(tl); row.appendChild(inp); return row;
+
+    function applyStrike(){
+      inp.style.textDecoration = chk.checked ? 'line-through' : 'none';
+      inp.style.color = chk.checked ? 'var(--muted)' : 'var(--text)';
+    }
+    applyStrike();
+
+    inp.oninput = (function(i){ return function(){ savePText(key, i, this.value); }; })(idx);
+    chk.onchange = (function(i){ return function(){ savePDone(key, i, this.checked); applyStrike(); }; })(idx);
+
+    cell.appendChild(chk); cell.appendChild(inp);
+    row.appendChild(tl); row.appendChild(cell); return row;
   }
 
   // CARD 1: Intention + Schedule
@@ -2512,7 +2537,60 @@ function toggleRitual(dayKey, ritualKey, idx, el) {
 }
 
 function saveIntention(key, val) { cw().dayIntentions[key] = val; save(); }
-function saveP(day, idx, val) { var C = cw(); if (!C.dayPriorities[day]) C.dayPriorities[day] = []; C.dayPriorities[day][idx] = val; save(); }
+function _pCell(C, day, idx){
+  var a = C.dayPriorities[day];
+  if (!Array.isArray(a)) { a = pRow3(); C.dayPriorities[day] = a; }
+  if (!a[idx] || typeof a[idx] !== 'object') a[idx] = pRow(typeof a[idx] === 'string' ? a[idx] : '');
+  return a[idx];
+}
+function savePText(day, idx, val) { var C = cw(); _pCell(C, day, idx).text = val; save(); }
+function savePDone(day, idx, done) { var C = cw(); _pCell(C, day, idx).done = !!done; save(); }
+
+// Gather every unfinished daily priority + urgent task in a week as plain text strings.
+function collectUnfinished(C){
+  var out = [];
+  var DP = C.dayPriorities || {};
+  ['mon','tue','wed','thu','fri','sat'].forEach(function(k){
+    (DP[k] || []).forEach(function(p){
+      if (p && typeof p === 'object' && p.text && p.text.trim() && !p.done) out.push(p.text.trim());
+    });
+  });
+  var DU = C.dayUrgent || {};
+  Object.keys(DU).forEach(function(k){
+    (DU[k] || []).forEach(function(u){ if (u && u.text && u.text.trim() && !u.done) out.push(u.text.trim()); });
+  });
+  return out;
+}
+
+// Manual week close — the primary way the week advances. Sweeps unfinished items to the
+// Master List (tagged Unsorted), then moves the current + view pointers to next week.
+function closeWeekAndStartFresh(){
+  var C = cw();
+  var unfinished = collectUnfinished(C);
+  var lead = unfinished.length
+    ? ('This will carry ' + unfinished.length + ' unfinished item' + (unfinished.length === 1 ? '' : 's') + ' to the Master List (tagged Unsorted), then open next week.\n\n')
+    : 'This will open next week to plan.\n\n';
+  if (!confirm(lead + 'Close this week and start fresh?')) return;
+
+  if (!S.masterItems) S.masterItems = [];
+  var addDate = _ymd(new Date());
+  unfinished.forEach(function(text){
+    S.masterItems.unshift({
+      id: 'mt_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+      text: text, pillar: 'unsorted', sub: '', done: false,
+      addDate: addDate, dueDate: '', recur: ''
+    });
+  });
+
+  var base = S.currentWeekKey || getCurrentMondayKey();
+  var nextKey = getNextMondayKey(base);
+  S.currentWeekKey = nextKey;
+  S.viewWeekKey = nextKey;
+  ensureWeek(nextKey);
+  save();
+  init();
+  alert('Fresh week started: ' + (getWeekLabelForKey(nextKey) || nextKey) + '. Time to plan.');
+}
 
 // Renders the Weekly Review panel for whatever S.viewWeekKey points at.
 function renderWeeklyReview() {
