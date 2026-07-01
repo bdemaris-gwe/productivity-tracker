@@ -451,6 +451,10 @@
   <!-- FRAMEWORK -->
   <div class="panel" id="panel-framework">
 
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <button class="btn btn-sm" onclick="resetDeckForQ3()" style="font-size:11px">Start a fresh quarter (clear deck)</button>
+    </div>
+
     <div class="card">
       <div class="card-title" style="margin-bottom:16px">Coach Danny's planning hierarchy</div>
 
@@ -3111,6 +3115,22 @@ function renderQ2Review() {
     if (parts.length) { box.innerHTML = parts.join('\n\n'); box.style.display='block'; }
     else { box.style.display='none'; }
   });
+}
+
+function resetDeckForQ3() {
+  if (!confirm('Start a fresh quarter — clear the planning deck?\n\nThis empties your Quarterly objectives, Monthly targets, 4-week action plan, and the quarterly review, WITHOUT archiving. Your archive, your Vision Statement, and your weekly reviews are all kept.')) return;
+  var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var mids = ['mt_jan','mt_feb','mt_mar','mt_apr','mt_may','mt_jun','mt_jul','mt_aug','mt_sep','mt_oct','mt_nov','mt_dec'];
+  var qStart = Math.floor(new Date().getMonth()/3)*3;
+  S.qObjs = [];
+  S.monthlyTargets = [0,1,2].map(function(i){ return { month: monthNames[qStart+i], id: mids[qStart+i], pillars:{health:[''],wealth:[''],goodwolf:[''],creative:['']}, extra:[] }; });
+  S.monthlyReviews = {};
+  S.actionItems = [];
+  S.qReview2 = {};
+  save();
+  renderQObjs(); renderMonthlyTargets(); renderActionPlan(); renderMonthlyReviews(); renderQ2Review();
+  if (jbBin() && jbKey()) pushSync();
+  alert('Fresh quarter ready. Objectives, monthly targets, action plan, and review are cleared. Your archive, vision, and weekly reviews are intact.');
 }
 
 function archiveQuarter() {
