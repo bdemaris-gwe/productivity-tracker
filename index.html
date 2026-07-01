@@ -457,9 +457,9 @@
       <div class="hierarchy-row">
         <div class="h-icon">◎</div>
         <div style="flex:1">
-          <div class="h-label">1-year goal</div>
-          <div class="h-sub" style="margin-bottom:8px">Vision + mission level. Macro markers only. Direction, not detail.</div>
-          <textarea id="year-goal" rows="2" placeholder="What does Brandon Wayne DeMaris — the real you — look like by April 8, 2027?" oninput="S.yearGoal=this.value;save()" style="margin:0;font-size:13px"></textarea>
+          <div class="h-label">Vision Statement — who I'm becoming</div>
+          <div class="h-sub" style="margin-bottom:8px">Your ultimate vision — the what and the why, not the how. Carries across quarters; revise it when it evolves.</div>
+          <textarea id="year-goal" rows="7" placeholder="The man I'm becoming — who I am when I look in the mirror, and why it matters..." oninput="S.yearGoal=this.value;save()" style="margin:0"></textarea>
         </div>
       </div>
 
@@ -3131,12 +3131,13 @@ function archiveQuarter() {
   S.archive.unshift(snapshot);
   // Also push to dedicated archive bin if connected
   pushToArchive({ type: 'quarter', data: snapshot });
-  // Reset for Q3
+  // Carry the review's vision forward into the persistent Vision Statement, then reset for Q3
+  if (S.qReview2 && S.qReview2.vision && S.qReview2.vision.trim()) S.yearGoal = S.qReview2.vision.trim();
   S.qObjs = [];
   S.monthlyTargets = [
-    { month: 'July', text: '', id: 'mt_jul' },
-    { month: 'August', text: '', id: 'mt_aug' },
-    { month: 'September', text: '', id: 'mt_sep' }
+    { month: 'July', id: 'mt_jul', pillars: { health:[''], wealth:[''], goodwolf:[''], creative:[''] }, extra:[] },
+    { month: 'August', id: 'mt_aug', pillars: { health:[''], wealth:[''], goodwolf:[''], creative:[''] }, extra:[] },
+    { month: 'September', id: 'mt_sep', pillars: { health:[''], wealth:[''], goodwolf:[''], creative:[''] }, extra:[] }
   ];
   S.monthlyReviews = {};
   S.actionItems = [];
