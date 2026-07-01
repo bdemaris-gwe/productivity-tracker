@@ -229,6 +229,10 @@
   .scan-score:focus { outline:none; border-color:var(--subtle); }
   .scan-score::placeholder { color:var(--subtle); }
   .scan-note { flex:1; }
+  .q2ref { display:none; font-size:12px; color:var(--muted); background:var(--surface2); border-left:2px solid var(--accent); border-radius:0 6px 6px 0; padding:8px 10px; margin-top:6px; line-height:1.5; white-space:pre-wrap; }
+  .q2ref-label { display:block; font-family:var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--subtle); margin-bottom:3px; }
+  .q2-pillar-goal { display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; }
+  .q2-pillar-goal .pg-name { flex-shrink:0; width:72px; font-size:13px; font-weight:500; padding-top:9px; }
 </style>
 <script src="chrome-extension://liecbddmkiiihnedobmlmillhodjkdmb/js/recordConsoleEvents.js"></script></head>
 <body>
@@ -530,86 +534,95 @@
         <span id="qr-chevron" style="font-size:11px;color:var(--muted)">▼</span>
       </div>
       <div id="qr-body" style="display:none;margin-top:16px">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;font-style:italic">Look back, scan all four pillars, then set the next 90 days. Autosaves as you type — you don't have to finish in one sitting. When you're ready to close the quarter, the archive button rolls everything to Q3 and saves a snapshot to JSONBin.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;font-style:italic">Finish your Q2 close-out on the new questions. Wherever you already wrote something, it shows up in the gold box under the question — read it, keep it, or build on it. Autosaves as you go, and none of your original notes are touched.</div>
 
-      <!-- MOVEMENT 1: LOOK BACK -->
-      <div class="qr-movement">I · Look back</div>
+      <!-- VISION -->
+      <div class="qr-movement">Vision — who I'm becoming</div>
+      <div class="reflection-block" style="margin-bottom:0">
+        <div class="reflection-prompt">Your north star for the season. Closing out a quarter is the moment to revise it for the road ahead.</div>
+        <textarea id="q2-vision" rows="6" placeholder="My mission this season... the man I'm becoming..." oninput="S.qReview2.vision=this.value;save()"></textarea>
+      </div>
+
+      <!-- I · LOOKING BACK -->
+      <div class="qr-movement">I · Looking back — what I aimed for, and how it went</div>
       <div class="reflection-block">
-        <div class="reflection-label">1. Name the challenge</div>
-        <div class="reflection-prompt">What specific problem were you solving this quarter? Describe without emotion.</div>
-        <textarea id="qr-challenge" rows="2" placeholder="The core challenge this quarter..." oninput="S.quarterlyReview.challenge=this.value;save()"></textarea>
+        <div class="reflection-label">1. Intentions</div>
+        <div class="reflection-prompt">What did you set out to do this quarter? The goals you named 90 days ago.</div>
+        <textarea id="q2-intentions" rows="4" placeholder="What you set out to do..." oninput="S.qReview2.intentions=this.value;save()"></textarea>
+        <div class="q2ref" data-ref="_qobjs"></div>
       </div>
       <div class="reflection-block">
-        <div class="reflection-label">2. What does victory look like?</div>
-        <div class="reflection-prompt">Did you achieve the outcome you wanted? How do you know you won or didn't?</div>
-        <textarea id="qr-victory" rows="2" placeholder="What victory looked like, and whether you got there..." oninput="S.quarterlyReview.victory=this.value;save()"></textarea>
+        <div class="reflection-label">2. The scorecard</div>
+        <div class="reflection-prompt">Which did you hit, which did you miss? For the misses — what happened, and why?</div>
+        <textarea id="q2-scorecard" rows="5" placeholder="Hit / missed, and the honest why for each..." oninput="S.qReview2.scorecard=this.value;save()"></textarea>
+        <div class="q2ref" data-ref="victory,metrics"></div>
       </div>
       <div class="reflection-block">
-        <div class="reflection-label">3. Highest-leverage impact</div>
-        <div class="reflection-prompt">What were the 1-3 highest-impact actions that drove the most important results this quarter?</div>
-        <textarea id="qr-leverage" rows="2" placeholder="What actually moved the needle..." oninput="S.quarterlyReview.leverage=this.value;save()"></textarea>
+        <div class="reflection-label">3. What worked</div>
+        <div class="reflection-prompt">The behaviors, decisions, people, and conditions that created results and energy.</div>
+        <textarea id="q2-worked" rows="4" placeholder="What drove the wins and gave you fuel..." oninput="S.qReview2.worked=this.value;save()"></textarea>
+        <div class="q2ref" data-ref="leverage,energyCreators"></div>
       </div>
       <div class="reflection-block" style="margin-bottom:0">
-        <div class="reflection-label">4. Obstacles &amp; what undermined you</div>
-        <div class="reflection-prompt">What challenges showed up and how did your lower self respond? Which habits or behaviors drained your capacity and must be eliminated next quarter?</div>
-        <textarea id="qr-obstacles" rows="2" placeholder="What got in the way, how you responded, what to cut..." oninput="S.quarterlyReview.obstacles=this.value;save()"></textarea>
+        <div class="reflection-label">4. What cost me</div>
+        <div class="reflection-prompt">What drained results and energy — obstacles, time-sinks, the habits where your lower self showed up.</div>
+        <textarea id="q2-cost" rows="4" placeholder="What got in the way and pulled energy..." oninput="S.qReview2.cost=this.value;save()"></textarea>
+        <div class="q2ref" data-ref="challenge,obstacles,energyDrainers"></div>
       </div>
 
-      <!-- MOVEMENT 2: DOMAIN SCAN -->
-      <div class="qr-movement">II · Domain scan — rate each 1–5, then one honest line</div>
+      <!-- II · PRESENT ASSESSMENT -->
+      <div class="qr-movement">II · Where things stand right now — rate 1–5, one honest line</div>
       <div class="scan-row">
-        <div class="scan-meta"><div class="scan-name">Health</div><input type="number" min="1" max="5" class="scan-score" id="qr-scanHealthScore" placeholder="–" oninput="S.quarterlyReview.scanHealthScore=this.value;save()"></div>
-        <textarea class="scan-note" rows="2" id="qr-scanHealth" placeholder="Body comp, energy, sleep, recovery, training — the honest read..." oninput="S.quarterlyReview.scanHealth=this.value;save()"></textarea>
-      </div>
-      <div class="scan-row">
-        <div class="scan-meta"><div class="scan-name">Wealth</div><input type="number" min="1" max="5" class="scan-score" id="qr-scanWealthScore" placeholder="–" oninput="S.quarterlyReview.scanWealthScore=this.value;save()"></div>
-        <textarea class="scan-note" rows="2" id="qr-scanWealth" placeholder="Personal income, savings, runway — where the number landed vs. target..." oninput="S.quarterlyReview.scanWealth=this.value;save()"></textarea>
+        <div class="scan-meta"><div class="scan-name">Health</div><input type="number" min="1" max="5" class="scan-score" id="q2-ratingHealth" placeholder="–" oninput="S.qReview2.ratingHealth=this.value;save()"></div>
+        <div style="flex:1"><textarea class="scan-note" rows="3" id="q2-lineHealth" placeholder="Body, energy, sleep, recovery, training — the honest read..." oninput="S.qReview2.lineHealth=this.value;save()"></textarea><div class="q2ref" data-ref="scanHealth"></div></div>
       </div>
       <div class="scan-row">
-        <div class="scan-meta"><div class="scan-name">Creativity</div><input type="number" min="1" max="5" class="scan-score" id="qr-scanCreativeScore" placeholder="–" oninput="S.quarterlyReview.scanCreativeScore=this.value;save()"></div>
-        <textarea class="scan-note" rows="2" id="qr-scanCreative" placeholder="Music, Be Here Now, songwriting — output, momentum, what shipped..." oninput="S.quarterlyReview.scanCreative=this.value;save()"></textarea>
+        <div class="scan-meta"><div class="scan-name">Wealth</div><input type="number" min="1" max="5" class="scan-score" id="q2-ratingWealth" placeholder="–" oninput="S.qReview2.ratingWealth=this.value;save()"></div>
+        <div style="flex:1"><textarea class="scan-note" rows="3" id="q2-lineWealth" placeholder="Personal income, savings, runway, investments — where the number landed..." oninput="S.qReview2.lineWealth=this.value;save()"></textarea><div class="q2ref" data-ref="scanWealth"></div></div>
       </div>
-      <div class="scan-row" style="margin-bottom:0">
-        <div class="scan-meta"><div class="scan-name">Business</div><input type="number" min="1" max="5" class="scan-score" id="qr-scanBusinessScore" placeholder="–" oninput="S.quarterlyReview.scanBusinessScore=this.value;save()"></div>
-        <textarea class="scan-note" rows="2" id="qr-scanBusiness" placeholder="Good Wolf — revenue, pipeline, systems, team capacity..." oninput="S.quarterlyReview.scanBusiness=this.value;save()"></textarea>
+      <div class="scan-row">
+        <div class="scan-meta"><div class="scan-name" style="color:var(--accent2)">Good Wolf</div><input type="number" min="1" max="5" class="scan-score" id="q2-ratingGoodwolf" placeholder="–" oninput="S.qReview2.ratingGoodwolf=this.value;save()"></div>
+        <div style="flex:1"><div style="font-size:11px;color:var(--muted);font-style:italic;margin-bottom:5px">The engine under Wealth — its own read: revenue, pipeline, deals, team, systems.</div><textarea class="scan-note" rows="3" id="q2-lineGoodwolf" placeholder="Good Wolf on its own terms — what's true about the business right now..." oninput="S.qReview2.lineGoodwolf=this.value;save()"></textarea><div class="q2ref" data-ref="scanBusiness"></div></div>
       </div>
-
-      <!-- MOVEMENT 3: LOOK FORWARD -->
-      <div class="qr-movement">III · Look forward</div>
-      <div class="reflection-block">
-        <div class="reflection-label">Energy — what created it?</div>
-        <div class="reflection-prompt">Which activities, people, or projects consistently CREATED energy? Did you give them enough time?</div>
-        <textarea id="qr-energyCreators" rows="2" placeholder="Energy creators — protect and expand these next quarter..." oninput="S.quarterlyReview.energyCreators=this.value;save()"></textarea>
+      <div class="scan-row">
+        <div class="scan-meta"><div class="scan-name">Creative</div><input type="number" min="1" max="5" class="scan-score" id="q2-ratingCreative" placeholder="–" oninput="S.qReview2.ratingCreative=this.value;save()"></div>
+        <div style="flex:1"><textarea class="scan-note" rows="3" id="q2-lineCreative" placeholder="BWD Artist, Be Here Now, songwriting — output, momentum, what shipped..." oninput="S.qReview2.lineCreative=this.value;save()"></textarea><div class="q2ref" data-ref="scanCreative"></div></div>
       </div>
-      <div class="reflection-block">
-        <div class="reflection-label">Energy — what drained it?</div>
-        <div class="reflection-prompt">Which activities, people, or projects consistently DRAINED energy? Did you let them persist or manage them in real time?</div>
-        <textarea id="qr-energyDrainers" rows="2" placeholder="Energy drainers — minimize, delegate, or cut..." oninput="S.quarterlyReview.energyDrainers=this.value;save()"></textarea>
-      </div>
-      <div class="reflection-block">
+      <div class="reflection-block" style="margin-top:16px;margin-bottom:0">
         <div class="reflection-label">Start / Stop / Continue</div>
-        <div class="reflection-prompt">Turn the reflection above into concrete behaviors for next quarter.</div>
-        <div style="display:grid;gap:8px">
-          <input type="text" id="qr-startList" placeholder="START — a new behavior or focus..." oninput="S.quarterlyReview.startList=this.value;save()">
-          <input type="text" id="qr-stopList" placeholder="STOP — what to drop or eliminate..." oninput="S.quarterlyReview.stopList=this.value;save()">
-          <input type="text" id="qr-continueList" placeholder="CONTINUE — what's working, keep it..." oninput="S.quarterlyReview.continueList=this.value;save()">
-        </div>
+        <div class="reflection-prompt">Your honest read of the behaviors right now — as many points as you want, one per line.</div>
+        <div style="margin-bottom:10px"><div style="font-size:11px;font-family:var(--mono);color:var(--green);margin-bottom:4px;letter-spacing:.06em">START</div><textarea id="q2-start" rows="3" placeholder="New behaviors or focus — one per line..." oninput="S.qReview2.start=this.value;save()"></textarea><div class="q2ref" data-ref="startList"></div></div>
+        <div style="margin-bottom:10px"><div style="font-size:11px;font-family:var(--mono);color:var(--red);margin-bottom:4px;letter-spacing:.06em">STOP</div><textarea id="q2-stop" rows="3" placeholder="What to drop or eliminate — one per line..." oninput="S.qReview2.stop=this.value;save()"></textarea><div class="q2ref" data-ref="stopList"></div></div>
+        <div><div style="font-size:11px;font-family:var(--mono);color:var(--accent);margin-bottom:4px;letter-spacing:.06em">CONTINUE</div><textarea id="q2-continue" rows="3" placeholder="What's working, keep it — one per line..." oninput="S.qReview2.continue=this.value;save()"></textarea><div class="q2ref" data-ref="continueList"></div></div>
+      </div>
+
+      <!-- III · LOOKING FORWARD -->
+      <div class="qr-movement">III · Looking forward — one goal per pillar</div>
+      <div class="reflection-block">
+        <div class="reflection-label">The next 90 days — one clear goal each</div>
+        <div class="reflection-prompt">One line per pillar. These become the intentions you'll grade at the top of next quarter.</div>
+        <div class="q2-pillar-goal"><span class="pg-name">Health</span><textarea id="q2-goalHealth" rows="2" placeholder="One goal for Health..." oninput="S.qReview2.goalHealth=this.value;save()"></textarea></div>
+        <div class="q2-pillar-goal"><span class="pg-name">Wealth</span><textarea id="q2-goalWealth" rows="2" placeholder="One goal for Wealth..." oninput="S.qReview2.goalWealth=this.value;save()"></textarea></div>
+        <div class="q2-pillar-goal" style="margin-bottom:0"><span class="pg-name">Creative</span><textarea id="q2-goalCreative" rows="2" placeholder="One goal for Creative..." oninput="S.qReview2.goalCreative=this.value;save()"></textarea></div>
+        <div class="q2ref" data-ref="nextObjective"></div>
       </div>
       <div class="reflection-block">
-        <div class="reflection-label">Resources &amp; people</div>
-        <div class="reflection-prompt">Who showed up for you? What tools or systems helped? What do you need more of next quarter?</div>
-        <textarea id="qr-resources" rows="2" placeholder="Your support system and what it needs..." oninput="S.quarterlyReview.resources=this.value;save()"></textarea>
+        <div class="reflection-label">Theme for the quarter</div>
+        <div class="reflection-prompt">Name the season in a word or phrase — the domino that knocks down the rest.</div>
+        <input type="text" id="q2-theme" placeholder="Next quarter's theme..." oninput="S.qReview2.theme=this.value;save()">
+        <div class="q2ref" data-ref="nextTheme"></div>
       </div>
       <div class="reflection-block">
-        <div class="reflection-label">Winning mindset &amp; mantras</div>
-        <div class="reflection-prompt">What mindset did you lead with? What mental/emotional pitfalls hit you? What truths do you carry into next quarter?</div>
-        <textarea id="qr-mindset" rows="2" placeholder="The identity work — what you&#39;re taking forward..." oninput="S.quarterlyReview.mindset=this.value;save()"></textarea>
+        <div class="reflection-label">Mantras &amp; mindset</div>
+        <div class="reflection-prompt">The truths you carry forward. What you lead with when the lower self shows up.</div>
+        <textarea id="q2-mantras" rows="4" placeholder="Be Him. Be Here Now. Be > Do > Have..." oninput="S.qReview2.mantras=this.value;save()"></textarea>
+        <div class="q2ref" data-ref="mindset"></div>
       </div>
       <div class="reflection-block" style="margin-bottom:0">
-        <div class="reflection-label">Next quarter — theme &amp; the one objective</div>
-        <div class="reflection-prompt">Name the quarter in a word or phrase, then the single most important objective — the domino that knocks down the rest. Use these to seed your quarterly objectives above.</div>
-        <input type="text" id="qr-nextTheme" placeholder="Next quarter's theme (one word or phrase)..." style="margin-bottom:8px" oninput="S.quarterlyReview.nextTheme=this.value;save()">
-        <textarea id="qr-nextObjective" rows="2" placeholder="The one objective that matters most next quarter..." oninput="S.quarterlyReview.nextObjective=this.value;save()"></textarea>
+        <div class="reflection-label">Who I need in my corner</div>
+        <div class="reflection-prompt">The people, tools, and support that make the next 90 days possible.</div>
+        <textarea id="q2-support" rows="3" placeholder="Your support system and what it needs..." oninput="S.qReview2.support=this.value;save()"></textarea>
+        <div class="q2ref" data-ref="resources"></div>
       </div>
 
       <div style="display:flex;justify-content:flex-end;margin-top:18px">
@@ -853,6 +866,7 @@ function ensureState() {
   if (!S.reflection) S.reflection = { wins:'', working:'', notworking:'', adjustments:'', support:'' };
   if (!S.monthlyReviews) S.monthlyReviews = {};
   if (!S.quarterlyReview) S.quarterlyReview = {};
+  if (!S.qReview2) S.qReview2 = {};
   if (!S.archive) S.archive = [];
   if (!S.yearGoal) S.yearGoal = '';
   // monthlyTargets migration handled in init() using getDefaultMonthlyTargets()
@@ -2820,11 +2834,7 @@ function switchTab(id) {
   if (id==='framework') {
     renderQObjs(); renderMonthlyTargets(); renderActionPlan(); renderMonthlyReviews(); renderArchive();
     var yg = document.getElementById('year-goal'); if(yg) yg.value = S.yearGoal||'';
-    var qrFields = ['challenge','victory','leverage','obstacles',
-      'scanHealthScore','scanHealth','scanWealthScore','scanWealth','scanCreativeScore','scanCreative','scanBusinessScore','scanBusiness',
-      'energyCreators','energyDrainers','startList','stopList','continueList',
-      'resources','mindset','nextTheme','nextObjective'];
-    qrFields.forEach(function(f){ var el=document.getElementById('qr-'+f); if(el) el.value=(S.quarterlyReview&&S.quarterlyReview[f])||''; });
+    renderQ2Review();
     // Archive bin state
     if (jbArchiveBin() && jbArchiveKey()) { showArchiveConnected(); }
   }
@@ -3054,7 +3064,7 @@ function renderMonthlyReviews() {
       pLabel.style.cssText = 'font-size:11px;color:var(--muted);font-style:italic;margin-top:10px;margin-bottom:4px';
       pLabel.textContent = prompt;
       var ta = document.createElement('textarea');
-      ta.rows = 2; ta.style.marginBottom = '0';
+      ta.rows = 4; ta.style.marginBottom = '0';
       ta.value = (rev['q'+pi]) || '';
       ta.oninput = (function(mid, qi){ return function(){ if(!S.monthlyReviews) S.monthlyReviews={}; if(!S.monthlyReviews[mid]) S.monthlyReviews[mid]={}; S.monthlyReviews[mid]['q'+qi]=this.value; save(); }; })(mt.id, pi);
       reviewArea.appendChild(pLabel); reviewArea.appendChild(ta);
@@ -3070,6 +3080,39 @@ function renderMonthlyReviews() {
   });
 }
 
+var Q2_REF_LABELS = {
+  _qobjs:'Your Q2 objectives', victory:'Victory', metrics:'Metrics', leverage:'Highest leverage',
+  energyCreators:'Energy created', challenge:'The challenge', obstacles:'Obstacles',
+  energyDrainers:'Energy drained', scanHealth:'Health scan', scanWealth:'Wealth scan',
+  scanBusiness:'Business scan', scanCreative:'Creativity scan', startList:'Start',
+  stopList:'Stop', continueList:'Continue', nextObjective:'Next objective', nextTheme:'Next theme',
+  mindset:'Winning mindset', resources:'Resources & people'
+};
+function q2esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function renderQ2Review() {
+  if (!S.qReview2) S.qReview2 = {};
+  var fields = ['vision','intentions','scorecard','worked','cost','ratingHealth','lineHealth',
+    'ratingWealth','lineWealth','ratingGoodwolf','lineGoodwolf','ratingCreative','lineCreative',
+    'start','stop','continue','goalHealth','goalWealth','goalCreative','theme','mantras','support'];
+  fields.forEach(function(f){ var el=document.getElementById('q2-'+f); if(el) el.value=(S.qReview2[f]!=null?S.qReview2[f]:''); });
+  // Fill the reference boxes from the ORIGINAL (untouched) quarterly review + objectives
+  var qr = S.quarterlyReview || {};
+  document.querySelectorAll('.q2ref').forEach(function(box){
+    var keys = (box.getAttribute('data-ref')||'').split(',').filter(Boolean);
+    var parts = [];
+    keys.forEach(function(k){
+      var val = '';
+      if (k === '_qobjs') { val = (S.qObjs||[]).filter(function(o){return o&&String(o).trim();}).map(function(o,i){return (i+1)+'. '+o;}).join('\n'); }
+      else { val = qr[k] || ''; }
+      if (val && String(val).trim()) {
+        parts.push('<span class="q2ref-label">From your Q2 notes · '+(Q2_REF_LABELS[k]||k)+'</span>'+q2esc(String(val).trim()));
+      }
+    });
+    if (parts.length) { box.innerHTML = parts.join('\n\n'); box.style.display='block'; }
+    else { box.style.display='none'; }
+  });
+}
+
 function archiveQuarter() {
   if (!confirm('Archive Q2 2026 and open Q3? Your objectives, targets, actions and review will be saved to the archive.')) return;
   if (!S.archive) S.archive = [];
@@ -3082,6 +3125,7 @@ function archiveQuarter() {
     monthlyReviews: JSON.parse(JSON.stringify(S.monthlyReviews || {})),
     actionItems: JSON.parse(JSON.stringify(S.actionItems || [])),
     quarterlyReview: JSON.parse(JSON.stringify(S.quarterlyReview || {})),
+    qReview2: JSON.parse(JSON.stringify(S.qReview2 || {})),
     weeklyHistory: JSON.parse(JSON.stringify((S.weeklyHistory || []).slice(0, 13)))
   };
   S.archive.unshift(snapshot);
@@ -3097,9 +3141,10 @@ function archiveQuarter() {
   S.monthlyReviews = {};
   S.actionItems = [];
   S.quarterlyReview = {};
+  S.qReview2 = {};
   save();
   pushSync().then(function() { alert('Q2 archived. Framework reset for Q3. Your archive is saved to JSONBin.'); });
-  renderQObjs(); renderMonthlyTargets(); renderActionPlan(); renderMonthlyReviews(); renderArchive();
+  renderQObjs(); renderMonthlyTargets(); renderActionPlan(); renderMonthlyReviews(); renderArchive(); renderQ2Review();
 }
 
 function renderArchive() {
