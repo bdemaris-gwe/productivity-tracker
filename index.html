@@ -3155,70 +3155,115 @@ function renderArchive() {
   var archive = S.archive || [];
   card.style.display = archive.length ? 'block' : 'none';
   el.innerHTML = '';
+
+  // --- small DOM helpers ---
+  function movement(text){ var d=document.createElement('div'); d.style.cssText='font-size:11px;font-weight:600;color:var(--accent);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)'; d.textContent=text; return d; }
+  function field(label, value){
+    if(value==null || !String(value).trim()) return null;
+    var w=document.createElement('div'); w.style.cssText='margin-bottom:10px';
+    var l=document.createElement('div'); l.style.cssText='font-size:11px;font-weight:500;color:var(--muted);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:3px'; l.textContent=label;
+    var t=document.createElement('div'); t.style.cssText='font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.5'; t.textContent=String(value).trim();
+    w.appendChild(l); w.appendChild(t); return w;
+  }
+  function add(parent, node){ if(node) parent.appendChild(node); }
+
   archive.forEach(function(snap, si) {
     var wrap = document.createElement('div');
     wrap.style.cssText = 'margin-bottom:12px;border:1px solid var(--border);border-radius:8px;overflow:hidden';
     var header = document.createElement('div');
     header.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;background:var(--surface2)';
-    var qLabel = document.createElement('span');
-    qLabel.style.cssText = 'font-size:13px;font-weight:500;color:var(--text)';
-    qLabel.textContent = snap.quarter;
-    var dateLabel = document.createElement('span');
-    dateLabel.style.cssText = 'font-size:11px;color:var(--muted);font-family:var(--mono)';
-    dateLabel.textContent = 'Closed ' + snap.date;
-    var objCount = document.createElement('span');
-    objCount.style.cssText = 'font-size:11px;color:var(--muted);font-family:var(--mono);margin-left:auto';
-    objCount.textContent = (snap.objectives || []).length + ' objectives';
-    var chevron = document.createElement('span');
-    chevron.style.cssText = 'font-size:11px;color:var(--muted)'; chevron.innerHTML = '&#9660;';
+    var qLabel = document.createElement('span'); qLabel.style.cssText='font-size:13px;font-weight:500;color:var(--text)'; qLabel.textContent=snap.quarter;
+    var dateLabel = document.createElement('span'); dateLabel.style.cssText='font-size:11px;color:var(--muted);font-family:var(--mono)'; dateLabel.textContent='Closed '+snap.date;
+    var objCount = document.createElement('span'); objCount.style.cssText='font-size:11px;color:var(--muted);font-family:var(--mono);margin-left:auto'; objCount.textContent=(snap.objectives||[]).filter(function(o){return String(o||'').trim();}).length+' objectives';
+    var chevron = document.createElement('span'); chevron.style.cssText='font-size:11px;color:var(--muted)'; chevron.innerHTML='&#9660;';
     header.appendChild(qLabel); header.appendChild(dateLabel); header.appendChild(objCount); header.appendChild(chevron);
+
     var body = document.createElement('div');
-    body.style.cssText = 'display:none;padding:14px;font-size:13px;color:var(--muted)';
-    // Objectives
-    if (snap.objectives && snap.objectives.length) {
-      var objTitle = document.createElement('div');
-      objTitle.style.cssText = 'font-size:11px;font-weight:500;color:var(--text);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px';
-      objTitle.textContent = 'Objectives';
-      body.appendChild(objTitle);
-      snap.objectives.forEach(function(obj, oi) {
-        var row = document.createElement('div');
-        row.style.cssText = 'display:flex;gap:8px;margin-bottom:6px';
-        row.innerHTML = '<span style="color:var(--subtle);font-family:var(--mono);font-size:12px">'+(oi+1)+'.</span><span style="font-size:13px;color:var(--text)">'+obj+'</span>';
-        body.appendChild(row);
+    body.style.cssText='display:none;padding:14px;font-size:13px;color:var(--muted)';
+
+    var qr2 = snap.qReview2 || {};
+    var qrOld = snap.quarterlyReview || {};
+    var hasNew = Object.keys(qr2).some(function(k){ return String(qr2[k]||'').trim(); });
+
+    // Vision at close
+    add(body, field("Vision — who I'm becoming", qr2.vision || snap.yearGoal));
+
+    // Quarterly objectives
+    var objs = (snap.objectives||[]).filter(function(o){return String(o||'').trim();});
+    if (objs.length) {
+      add(body, movement('Quarterly objectives'));
+      objs.forEach(function(obj, oi){
+        var row=document.createElement('div'); row.style.cssText='display:flex;gap:8px;margin-bottom:6px';
+        var n=document.createElement('span'); n.style.cssText='color:var(--subtle);font-family:var(--mono);font-size:12px'; n.textContent=(oi+1)+'.';
+        var t=document.createElement('span'); t.style.cssText='font-size:13px;color:var(--text)'; t.textContent=obj;
+        row.appendChild(n); row.appendChild(t); body.appendChild(row);
       });
     }
-    // Review highlights
-    var qr = snap.quarterlyReview || {};
-    if (qr.leverage || qr.mindset) {
-      var divider = document.createElement('div');
-      divider.style.cssText = 'border-top:1px solid var(--border);margin:12px 0';
-      body.appendChild(divider);
-      if (qr.leverage) {
-        var lTitle = document.createElement('div');
-        lTitle.style.cssText = 'font-size:11px;font-weight:500;color:var(--muted);margin-bottom:4px;font-style:italic';
-        lTitle.textContent = 'Highest leverage';
-        var lText = document.createElement('div');
-        lText.style.cssText = 'font-size:13px;color:var(--text);margin-bottom:10px';
-        lText.textContent = qr.leverage;
-        body.appendChild(lTitle); body.appendChild(lText);
-      }
-      if (qr.mindset) {
-        var mTitle = document.createElement('div');
-        mTitle.style.cssText = 'font-size:11px;font-weight:500;color:var(--muted);margin-bottom:4px;font-style:italic';
-        mTitle.textContent = 'Winning mindset';
-        var mText = document.createElement('div');
-        mText.style.cssText = 'font-size:13px;color:var(--text)';
-        mText.textContent = qr.mindset;
-        body.appendChild(mTitle); body.appendChild(mText);
-      }
+
+    if (hasNew) {
+      add(body, movement('I · Looking back'));
+      add(body, field('Intentions', qr2.intentions));
+      add(body, field('Scorecard', qr2.scorecard));
+      add(body, field('What worked', qr2.worked));
+      add(body, field('What cost me', qr2.cost));
+
+      add(body, movement('II · Where things stand'));
+      var scan=function(name, rating, line){ var v=((rating!=null&&String(rating).trim())?('['+rating+'/5] '):'')+(line||''); return field(name, (String(rating||'').trim()||String(line||'').trim())?v:''); };
+      add(body, scan('Health', qr2.ratingHealth, qr2.lineHealth));
+      add(body, scan('Wealth', qr2.ratingWealth, qr2.lineWealth));
+      add(body, scan('Good Wolf', qr2.ratingGoodwolf, qr2.lineGoodwolf));
+      add(body, scan('Creative', qr2.ratingCreative, qr2.lineCreative));
+      add(body, field('Start', qr2.start));
+      add(body, field('Stop', qr2.stop));
+      add(body, field('Continue', qr2.continue));
+
+      add(body, movement('III · Looking forward'));
+      add(body, field('Goal — Health', qr2.goalHealth));
+      add(body, field('Goal — Wealth', qr2.goalWealth));
+      add(body, field('Goal — Creative', qr2.goalCreative));
+      add(body, field('Theme', qr2.theme));
+      add(body, field('Mantras', qr2.mantras));
+      add(body, field('Support', qr2.support));
+    } else if (qrOld.leverage || qrOld.mindset || qrOld.challenge) {
+      // Backward-compat: archives closed under the previous review structure
+      add(body, movement('Quarterly review'));
+      add(body, field('The challenge', qrOld.challenge));
+      add(body, field('Highest leverage', qrOld.leverage));
+      add(body, field('Winning mindset', qrOld.mindset));
     }
-    header.onclick = function() {
-      var open = body.style.display !== 'none';
-      body.style.display = open ? 'none' : 'block';
-      chevron.innerHTML = open ? '&#9660;' : '&#9650;';
-    };
-    wrap.appendChild(header); wrap.appendChild(body);
-    el.appendChild(wrap);
+
+    // Monthly targets
+    if (snap.monthlyTargets && snap.monthlyTargets.length) {
+      var mtNode=document.createElement('div'); var anyMt=false;
+      snap.monthlyTargets.forEach(function(mt){
+        var items=[];
+        if(mt.pillars){ ['health','wealth','goodwolf','creative'].forEach(function(p){ (mt.pillars[p]||[]).forEach(function(t){ if(String(t||'').trim()) items.push(t.trim()); }); }); }
+        if(mt.extra){ mt.extra.forEach(function(t){ if(String(t||'').trim()) items.push(t.trim()); }); }
+        if(items.length){ anyMt=true; add(mtNode, field(mt.month, items.map(function(x){return '- '+x;}).join('\n'))); }
+      });
+      if(anyMt){ add(body, movement('Monthly targets')); body.appendChild(mtNode); }
+    }
+
+    // Monthly reviews
+    if (snap.monthlyReviews && Object.keys(snap.monthlyReviews).length) {
+      var mrNode=document.createElement('div'); var anyMr=false;
+      var prompts=['What went well','What fell short & why','Key metric actuals','What carries forward'];
+      Object.keys(snap.monthlyReviews).forEach(function(mid){
+        var mr=snap.monthlyReviews[mid]||{}; var parts=[];
+        ['q0','q1','q2','q3'].forEach(function(q,i){ if(String(mr[q]||'').trim()) parts.push(prompts[i]+': '+mr[q].trim()); });
+        if(parts.length){ anyMr=true; add(mrNode, field(mid.replace(/^mt_/,''), parts.join('\n\n'))); }
+      });
+      if(anyMr){ add(body, movement('Monthly reviews')); body.appendChild(mrNode); }
+    }
+
+    // Footer: what else is preserved in the snapshot
+    var counts=[];
+    if(snap.actionItems) counts.push(snap.actionItems.length+' action items');
+    if(snap.weeklyHistory) counts.push(snap.weeklyHistory.length+' weekly reviews');
+    if(counts.length){ var f=document.createElement('div'); f.style.cssText='margin-top:14px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--subtle);font-family:var(--mono)'; f.textContent='Also archived: '+counts.join(' · '); body.appendChild(f); }
+
+    header.onclick = function(){ var open=body.style.display!=='none'; body.style.display=open?'none':'block'; chevron.innerHTML=open?'&#9660;':'&#9650;'; };
+    wrap.appendChild(header); wrap.appendChild(body); el.appendChild(wrap);
   });
 }
 
