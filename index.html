@@ -301,7 +301,8 @@
         </button>
       </div>
       <textarea id="brain-dump" rows="5" placeholder="Stream of consciousness &mdash; urgent things, random ideas, post-it notes, anything on your mind. No structure needed. Hit Analyze &amp; Triage when ready."></textarea>
-      <div style="display:flex;justify-content:flex-end;margin-top:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+        <button class="btn btn-sm" onclick="importMeetingItems()" style="font-size:12px" title="Pull action items filed by the meeting-notes assistant into this week's brain dump">&#11015; Import from meetings</button>
         <button class="btn btn-sm btn-accent" onclick="analyzeBrainDump()" style="font-size:12px">&#9889; Analyze &amp; Triage &rarr;</button>
       </div>
     </div>
@@ -2851,6 +2852,33 @@ const JB_KEY_KEY = 'idealWeek_jb_key';
 function jbBin() { return localStorage.getItem(JB_BIN_KEY); }
 function jbKey() { return localStorage.getItem(JB_KEY_KEY); }
 function jbHeaders() { return { 'Content-Type':'application/json','X-Master-Key':jbKey(),'X-Bin-Meta':'false' }; }
+
+// Pull action items queued by the meeting-notes assistant (a separate "inbox" bin)
+// into THIS week's brain dump, through the app's own save path (no JSONbin race),
+// then clear the inbox so nothing re-imports.
+async function importMeetingItems() {
+  var INBOX_BIN = '6a57e63df5f4af5e29945cf9'; // meeting-notes inbox (same JSONbin account as the main bin)
+  if (!jbBin() || !jbKey()) { alert('Connect cloud sync first (Settings), then Import.'); return; }
+  try {
+    var res = await fetch('https://api.jsonbin.io/v3/b/' + INBOX_BIN + '/latest', { headers: { 'X-Master-Key': jbKey(), 'X-Bin-Meta': 'false' } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var data = await res.json();
+    var items = (data && Array.isArray(data.items)) ? data.items.map(function(s){ return String(s).trim(); }).filter(Boolean) : [];
+    if (!items.length) { alert('No new meeting action items to import.'); return; }
+    var W = cw(); // current week — where Analyze & Triage reads
+    var cur = (typeof W.brainDump === 'string') ? W.brainDump : '';
+    var block = (cur && !/\n$/.test(cur) ? '\n' : '') + (cur ? '\n' : '') + items.join('\n') + '\n';
+    W.brainDump = cur + block;
+    S.viewWeekKey = S.currentWeekKey; // show the week we just wrote to
+    save();
+    if (typeof renderWeeklyReview === 'function') renderWeeklyReview();
+    try {
+      await fetch('https://api.jsonbin.io/v3/b/' + INBOX_BIN, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': jbKey() }, body: JSON.stringify({ items: [], _updated: Date.now() }) });
+    } catch (e) { console.warn('inbox clear failed', e); }
+    if (typeof pushSync === 'function') pushSync();
+    alert('Imported ' + items.length + ' item(s) into this week’s brain dump.');
+  } catch (e) { console.warn('Import failed', e); alert('Import failed: ' + e.message); }
+}
 
 async function pushSync() {
   if (!jbBin()||!jbKey()) return;
