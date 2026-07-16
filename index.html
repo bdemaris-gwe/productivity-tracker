@@ -1242,6 +1242,46 @@ function nextDueDate(currentDue, recur) {
   return d.toISOString().split('T')[0];
 }
 
+// ── WEEKLY MASTER-LIST HYGIENE ────────────────────────────────────
+// Runs at Close-the-Week so overdue tasks can never compound into a red pile again.
+//   1. Rolls overdue RECURRING items forward by cadence (an unchecked recurring
+//      task would otherwise just rot — toggleMasterItem only rolls on completion).
+//   2. Age-based demotion of slipped non-recurring items: the longer something has
+//      been open (from addDate), the further its horizon sinks — this week → month
+//      → quarter → Someday — so persistent dodging drifts out of sight instead of
+//      screaming red.
+//   3. Protects anything with a real date in its text (e.g. "Hazmat 8/22") from
+//      being auto-sunk, and flags it — plus any 90-day+ chronic dodger — so they
+//      surface for a real keep/delegate/kill decision. Returns a summary.
+function _comingSaturday(from){ var d=new Date(from); var add=(6-d.getDay()+7)%7; d.setDate(d.getDate()+add); return _ymd(d); }
+function _endOfMonth(from){ var d=new Date(from); return _ymd(new Date(d.getFullYear(), d.getMonth()+1, 0)); }
+function _endOfQuarter(from){ var d=new Date(from); var q=Math.floor(d.getMonth()/3); return _ymd(new Date(d.getFullYear(), q*3+3, 0)); }
+var HYGIENE_DATE_IN_TEXT = /\b(1[0-2]|0?[1-9])\/(3[01]|[12]\d|0?[1-9])\b|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}\b/i;
+
+function runWeeklyHygiene(){
+  if (!S.masterItems) return null;
+  var now = new Date(), today = _ymd(now);
+  var WEEK=_comingSaturday(now), MONTH=_endOfMonth(now), QUARTER=_endOfQuarter(now);
+  var sum = { rolled:0, week:0, month:0, quarter:0, someday:0, chronic:[], realDate:[] };
+  S.masterItems.forEach(function(it){
+    if (it.done || !it.dueDate || it.dueDate >= today) return;   // skip done / not overdue
+    if (it.recur) {                                              // roll recurring forward
+      var nd = it.dueDate, g = 0;
+      while (nd && nd < today && g++ < 400) nd = nextDueDate(nd, it.recur);
+      if (nd) { it.dueDate = nd; sum.rolled++; }
+      return;
+    }
+    if (HYGIENE_DATE_IN_TEXT.test(it.text)) { sum.realDate.push(it.text); return; } // protect real dates
+    // age in whole days, date-only so time-of-day of the close never shifts a classification
+    var age = it.addDate ? Math.round((new Date(today + 'T00:00:00') - new Date(it.addDate + 'T00:00:00')) / 86400000) : 0;
+    if (age < 21)      { it.dueDate = WEEK;    sum.week++; }
+    else if (age < 60) { it.dueDate = MONTH;   sum.month++; }
+    else if (age < 90) { it.dueDate = QUARTER; sum.quarter++; }
+    else               { it.dueDate = '';      sum.someday++; sum.chronic.push(it.text); }
+  });
+  return sum;
+}
+
 function toggleAddSubCat(pillar) {
   const subWrap = document.getElementById('master-add-sub');
   if (subWrap) subWrap.style.display = pillar === 'goodwolf' ? 'block' : 'none';
@@ -2671,6 +2711,9 @@ function closeWeekAndStartFresh(){
     });
   });
 
+  // Tidy the master list so overdue tasks never compound into a red pile.
+  var hyg = runWeeklyHygiene();
+
   var base = S.currentWeekKey || getCurrentMondayKey();
   var nextKey = getNextMondayKey(base);
   S.currentWeekKey = nextKey;
@@ -2678,7 +2721,23 @@ function closeWeekAndStartFresh(){
   ensureWeek(nextKey);
   save();
   init();
-  alert('Fresh week started: ' + (getWeekLabelForKey(nextKey) || nextKey) + '. Time to plan.');
+
+  var msg = 'Fresh week started: ' + (getWeekLabelForKey(nextKey) || nextKey) + '. Time to plan.';
+  if (hyg) {
+    var moved = hyg.week + hyg.month + hyg.quarter + hyg.someday;
+    if (hyg.rolled || moved) {
+      msg += '\n\nTidied the master list:';
+      if (hyg.rolled) msg += '\n↻ ' + hyg.rolled + ' recurring rolled forward';
+      if (moved) msg += '\n⤵ ' + moved + ' slipped item' + (moved===1?'':'s') + ' demoted'
+        + ' (' + hyg.week + ' this week · ' + hyg.month + ' this month · ' + hyg.quarter + ' this quarter · ' + hyg.someday + ' Someday)';
+    }
+    if (hyg.chronic.length || hyg.realDate.length) {
+      msg += '\n\n⚑ Needs your eyes in the Master List:';
+      if (hyg.chronic.length) msg += '\n• ' + hyg.chronic.length + ' item' + (hyg.chronic.length===1?'':'s') + ' open 90+ days — parked in Someday. Commit, delegate, or kill.';
+      if (hyg.realDate.length) msg += '\n• ' + hyg.realDate.length + ' with a real date in the text — left untouched. Confirm the deadline.';
+    }
+  }
+  alert(msg);
 }
 
 // Renders the Weekly Review panel for whatever S.viewWeekKey points at.
