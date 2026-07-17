@@ -2241,6 +2241,7 @@ function init() {
   // Build/refresh the keyed week timeline before anything reads it.
   migrateToWeeksModel();
   autoAdvanceWeek();
+  runDailyCarryForward();
   const wn = getWeekNum();
   // The top header always shows the calendar's current week (not the view week).
   var wlEl = document.getElementById('week-label'); if(wlEl) wlEl.textContent = getWeekLabelForKey(S.currentWeekKey);
@@ -2676,6 +2677,70 @@ function collectUnfinished(C){
     (DU[k] || []).forEach(function(u){ if (u && u.text && u.text.trim() && !u.done) out.push(u.text.trim()); });
   });
   return out;
+}
+
+// ── Daily carry-forward ────────────────────────────────────────────
+// Pours each past day's unfinished work into the next day's urgent list, so stragglers
+// land on today instead of being retyped by hand. Runs client-side on every load, which
+// is what keeps it safe: an outside write to the bin would be clobbered by an open tab.
+// Stops at the week boundary on purpose — closeWeekAndStartFresh() owns the sweep to the
+// Master List. Draining the source day makes this idempotent: a second pass finds nothing.
+var CARRY_DAYS = ['mon','tue','wed','thu','fri','sat'];
+
+// A day's data may sit under the weekday key ('mon') or a legacy ISO date key.
+function _carryDayKeys(weekKey, idx){
+  var d = dateFromKey(weekKey); d.setDate(d.getDate() + idx);
+  return [_ymd(d), CARRY_DAYS[idx]];
+}
+
+// Append to a day's urgent list, skipping anything already queued there.
+function _carryPush(dest, text){
+  var t = (text || '').trim();
+  if (!t) return 0;
+  for (var i = 0; i < dest.length; i++) {
+    if (dest[i] && (dest[i].text || '').trim() === t) return 0;
+  }
+  dest.push({ text: t, done: false, carried: true });
+  return 1;
+}
+
+function runDailyCarryForward(){
+  var jsDay = new Date().getDay();
+  if (jsDay === 0) return 0;                                // Sunday — the weekly close owns the handoff
+  if (S.currentWeekKey !== getCurrentMondayKey()) return 0;  // never touch a week being reviewed
+  var todayIdx = Math.min(jsDay - 1, 5);                     // mon=0 .. sat=5
+  var C = cw(), moved = 0;
+
+  // Walk the week in order so a Monday straggler cascades day by day onto today.
+  for (var i = 0; i < todayIdx; i++) {
+    var destKey = CARRY_DAYS[i + 1];   // writes use weekday keys, matching savePText/addUrgentItem
+    if (!Array.isArray(C.dayUrgent[destKey])) C.dayUrgent[destKey] = [];
+    var dest = C.dayUrgent[destKey];
+    var keys = _carryDayKeys(S.currentWeekKey, i);
+
+    for (var k = 0; k < keys.length; k++) {
+      var rows = C.dayPriorities[keys[k]];
+      if (Array.isArray(rows)) {
+        rows = normalizePRows(rows);
+        for (var r = 0; r < rows.length; r++) {
+          if (rows[r].text.trim() && !rows[r].done) { moved += _carryPush(dest, rows[r].text); rows[r] = pRow(); }
+        }
+        C.dayPriorities[keys[k]] = rows;
+      }
+      var src = C.dayUrgent[keys[k]];
+      if (Array.isArray(src)) {
+        var keep = [];
+        for (var u = 0; u < src.length; u++) {
+          var it = src[u];
+          if (it && (it.text || '').trim() && !it.done) moved += _carryPush(dest, it.text);
+          else if (it) keep.push(it);
+        }
+        C.dayUrgent[keys[k]] = keep;
+      }
+    }
+  }
+  if (moved) save();
+  return moved;
 }
 
 // Move the active "planning week" (the week the Daily schedule + Close act on) backward
