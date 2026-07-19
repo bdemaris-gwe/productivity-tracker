@@ -953,7 +953,7 @@ function normalizePRows(arr){
     for (var i = 0; i < 3; i++) {
       var v = arr[i];
       if (typeof v === 'string') out[i] = pRow(v);
-      else if (v && typeof v === 'object') { out[i] = pRow(v.text); out[i].done = !!v.done; }
+      else if (v && typeof v === 'object') { out[i] = pRow(v.text); out[i].done = !!v.done; if (v.carried) out[i].carried = true; }
     }
   }
   return out;
@@ -2419,6 +2419,13 @@ function showDayDetail(key) {
     chk.onchange = (function(i){ return function(){ savePDone(key, i, this.checked); applyStrike(); }; })(idx);
 
     cell.appendChild(chk); cell.appendChild(inp);
+    // Set but not gotten to — the row stays as the record; this marks that it moved on as urgent.
+    if (item.carried && !item.done) {
+      var car = document.createElement('span');
+      car.textContent = '↷'; car.title = 'Carried forward to the next day as urgent';
+      car.style.cssText = 'flex:none;font-size:13px;color:var(--muted);cursor:default';
+      cell.appendChild(car);
+    }
     row.appendChild(tl); row.appendChild(cell); return row;
   }
 
@@ -2684,7 +2691,13 @@ function collectUnfinished(C){
 // land on today instead of being retyped by hand. Runs client-side on every load, which
 // is what keeps it safe: an outside write to the bin would be clobbered by an open tab.
 // Stops at the week boundary on purpose — closeWeekAndStartFresh() owns the sweep to the
-// Master List. Draining the source day makes this idempotent: a second pass finds nothing.
+// Master List.
+//
+// Urgent items MOVE (drained from the source day). P1/P2/P3 priorities are COPIED instead
+// and left in place, unchecked, flagged `carried` — the day's priority row is a record of
+// what Brandon set out to do and whether he got to it, so wiping it destroys the only
+// signal that says "this was my P1 and I missed it." The flag is what keeps the pass
+// idempotent for priorities; draining does the same job for urgent items.
 var CARRY_DAYS = ['mon','tue','wed','thu','fri','sat'];
 
 // A day's data may sit under the weekday key ('mon') or a legacy ISO date key.
@@ -2723,7 +2736,7 @@ function runDailyCarryForward(){
       if (Array.isArray(rows)) {
         rows = normalizePRows(rows);
         for (var r = 0; r < rows.length; r++) {
-          if (rows[r].text.trim() && !rows[r].done) { moved += _carryPush(dest, rows[r].text); rows[r] = pRow(); }
+          if (rows[r].text.trim() && !rows[r].done && !rows[r].carried) { moved += _carryPush(dest, rows[r].text); rows[r].carried = true; }
         }
         C.dayPriorities[keys[k]] = rows;
       }
