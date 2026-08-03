@@ -1645,7 +1645,11 @@ function makeMasterRow(item) {
   const pillSpan = document.createElement('select');
   pillSpan.className='master-pill';
   pillSpan.style.cssText='background:'+pill.bg+';color:'+pill.color+';border:1px solid '+pill.border+';flex-shrink:0;cursor:pointer;font-family:var(--mono);font-size:10px;padding:2px 4px;border-radius:4px;appearance:none;-webkit-appearance:none;text-align:center';
-  [['health','Health'],['wealth','Wealth'],['creative','Creativity'],['goodwolf','Good Wolf']].forEach(function(pair){
+  // NOTE: 'unsorted' must stay in this list — close-the-week carry-forwards are stamped
+  // pillar:'unsorted', and with no matching option the browser silently selects the first
+  // one, making every carried item read (and, on any change event, become) that pillar.
+  // Good Wolf leads so any future gap falls to the business, never to Health.
+  [['unsorted','Unsorted'],['goodwolf','Good Wolf'],['health','Health'],['wealth','Wealth'],['creative','Creativity']].forEach(function(pair){
     var o = document.createElement('option');
     o.value = pair[0]; o.textContent = pair[1];
     if (item.pillar === pair[0]) o.selected = true;
