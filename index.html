@@ -1258,13 +1258,33 @@ function _endOfMonth(from){ var d=new Date(from); return _ymd(new Date(d.getFull
 function _endOfQuarter(from){ var d=new Date(from); var q=Math.floor(d.getMonth()/3); return _ymd(new Date(d.getFullYear(), q*3+3, 0)); }
 var HYGIENE_DATE_IN_TEXT = /\b(1[0-2]|0?[1-9])\/(3[01]|[12]\d|0?[1-9])\b|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}\b/i;
 
+// Which weekday a task belongs to, by focus area. Same mapping as
+// defaultDueDateForCategory(): admin/accounting/legal→Mon, production→Tue,
+// marketing→Wed, sales→Thu, Good Wolf catchall→Fri, personal pillars→Sat.
+function themeDayOffset(pillar, sub){
+  var SUB = { admin:0, accounting:0, legal:0, production:1, marketing:2, sales:3 };
+  var s = (sub||'').toLowerCase();
+  if (SUB[s] !== undefined) return SUB[s];
+  return pillar === 'goodwolf' ? 4 : 5;
+}
+// The task's theme day in the week AFTER `from`. Always lands in the next week —
+// closing on a Friday must not park work on that same Friday or on Saturday.
+function nextWeekThemeDate(pillar, sub, from){
+  var d = new Date(from + 'T00:00:00');
+  var toMonday = (8 - d.getDay()) % 7 || 7;
+  d.setDate(d.getDate() + toMonday + themeDayOffset(pillar, sub));
+  return _ymd(d);
+}
+
 function runWeeklyHygiene(){
   if (!S.masterItems) return null;
   var now = new Date(), today = _ymd(now);
-  var WEEK=_comingSaturday(now), MONTH=_endOfMonth(now), QUARTER=_endOfQuarter(now);
+  var MONTH=_endOfMonth(now), QUARTER=_endOfQuarter(now);
   var sum = { rolled:0, week:0, month:0, quarter:0, someday:0, chronic:[], realDate:[] };
   S.masterItems.forEach(function(it){
-    if (it.done || !it.dueDate || it.dueDate >= today) return;   // skip done / not overdue
+    // `> today`, not `>=`: an item due ON the day the week closes was being skipped
+    // as "not overdue", then went red hours later. Due-today is due-now — sweep it.
+    if (it.done || !it.dueDate || it.dueDate > today) return;
     if (it.recur) {                                              // roll recurring forward
       var nd = it.dueDate, g = 0;
       while (nd && nd < today && g++ < 400) nd = nextDueDate(nd, it.recur);
@@ -1274,7 +1294,9 @@ function runWeeklyHygiene(){
     if (HYGIENE_DATE_IN_TEXT.test(it.text)) { sum.realDate.push(it.text); return; } // protect real dates
     // age in whole days, date-only so time-of-day of the close never shifts a classification
     var age = it.addDate ? Math.round((new Date(today + 'T00:00:00') - new Date(it.addDate + 'T00:00:00')) / 86400000) : 0;
-    if (age < 21)      { it.dueDate = WEEK;    sum.week++; }
+    // Still-fresh work moves to its focus day in the coming week, so Monday shows
+    // admin, Tuesday shows production, and so on — not a wall of dead dates.
+    if (age < 21)      { it.dueDate = nextWeekThemeDate(it.pillar, it.sub, today); sum.week++; }
     else if (age < 60) { it.dueDate = MONTH;   sum.month++; }
     else if (age < 90) { it.dueDate = QUARTER; sum.quarter++; }
     else               { it.dueDate = '';      sum.someday++; sum.chronic.push(it.text); }
