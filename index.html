@@ -2045,7 +2045,9 @@ async function pushToArchive(data) {
       headers: { 'X-Master-Key': jbArchiveKey(), 'X-Bin-Meta': 'false' }
     });
     var existing = {};
-    if (res.ok) { var d = await res.json(); existing = d.record || {}; }
+    // Same X-Bin-Meta:false unwrapping trap as pullSync — without this the archive
+    // read returns {} and the PUT below replaces the whole archive instead of appending.
+    if (res.ok) { var d = await res.json(); existing = (d && d.record) ? d.record : (d || {}); }
     if (!existing.history) existing.history = [];
     existing.history.unshift(data);
     // Push updated archive
@@ -3059,8 +3061,12 @@ async function pullSync() {
     const res = await fetch(`https://api.jsonbin.io/v3/b/${jbBin()}/latest`,{headers:jbHeaders()});
     if (!res.ok) throw new Error('HTTP '+res.status);
     const data = await res.json();
-    if (data.record && Object.keys(data.record).length > 0) {
-      var remote = data.record;
+    // jbHeaders() sends X-Bin-Meta:false, so JSONbin returns the BARE record with no
+    // .record wrapper. Reading data.record made this whole block a silent no-op — the
+    // app never pulled, ever, while pushSync kept uploading localStorage every 60s.
+    // That is how external writes to the bin kept disappearing. Accept both shapes.
+    var remote = (data && data.record) ? data.record : data;
+    if (remote && Object.keys(remote).length > 0) {
       var localRaw = localStorage.getItem('idealWeek_v3');
       var local = localRaw ? JSON.parse(localRaw) : null;
       // Smart merge: if local data is newer than remote, push local up instead of pulling
