@@ -254,7 +254,7 @@
 </div>
 
 <div class="tabs">
-  <button class="tab active" onclick="switchTab(&#39;weekly-review&#39;)">Weekly Review</button>
+  <button class="tab active" onclick="switchTab(&#39;weekly-review&#39;)">Weekly Review <span id="tab-dump-badge" style="display:none;font-family:var(--mono);font-size:10px;background:var(--accent);color:#fff;border-radius:8px;padding:1px 6px;margin-left:5px;vertical-align:middle"></span></button>
   <button class="tab" onclick="switchTab(&#39;days&#39;)">Daily schedule</button>
   <button class="tab" onclick="switchTab(&#39;master&#39;)">Master Task List</button>
   <button class="tab" onclick="switchTab(&#39;framework&#39;)">Framework</button>
@@ -385,6 +385,22 @@
 
   <!-- DAILY SCHEDULE -->
   <div class="panel" id="panel-days">
+
+    <!-- Mirror of the Weekly Review brain dump — same data (the live week's), rendered
+         where Brandon actually works. Capture and triage were invisible on a page he
+         only opened once a week, so the inbox comes to the day instead. -->
+    <div class="card">
+      <div style="display:flex;align-items:center;margin-bottom:12px">
+        <div class="card-title" style="margin-bottom:0;flex:1">Brain dump</div>
+        <span style="font-size:11px;color:var(--muted);font-family:var(--mono)">this week</span>
+      </div>
+      <textarea id="brain-dump-days" rows="3" placeholder="Capture it here &mdash; anything on your mind. Triage when you&rsquo;re ready."></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+        <button class="btn btn-sm" onclick="importMeetingItems()" style="font-size:12px" title="Pull action items filed by the meeting-notes assistant into this week's brain dump">&#11015; Import from meetings</button>
+        <button class="btn btn-sm btn-accent" onclick="analyzeBrainDump(&#39;brain-dump-days&#39;)" style="font-size:12px">&#9889; Analyze &amp; Triage &rarr;</button>
+      </div>
+    </div>
+
     <div class="day-selector" id="day-selector"><div class="day-btn active" id="daybtn-mon"><div class="day-btn-name">Mon</div><div class="day-btn-theme">Admin + Accounting</div><div class="day-dot" style="background:#a08fb3"></div></div><div class="day-btn" id="daybtn-tue"><div class="day-btn-name">Tue</div><div class="day-btn-theme">Production</div><div class="day-dot" style="background:#4a7c62"></div></div><div class="day-btn" id="daybtn-wed"><div class="day-btn-name">Wed</div><div class="day-btn-theme">Marketing</div><div class="day-dot" style="background:#378ADD"></div></div><div class="day-btn" id="daybtn-thu"><div class="day-btn-name">Thu</div><div class="day-btn-theme">Biz Dev + Sales</div><div class="day-dot" style="background:#c8943a"></div></div><div class="day-btn" id="daybtn-fri"><div class="day-btn-name">Fri</div><div class="day-btn-theme">Business Catchall</div><div class="day-dot" style="background:#6b6b6b"></div></div><div class="day-btn" id="daybtn-sat"><div class="day-btn-name">Sat</div><div class="day-btn-theme">Personal Catchall</div><div class="day-dot" style="background:#7aa884"></div></div></div>
     <div id="day-detail"><div class="card"><div style="font-size: 11px; color: var(--muted); font-family: var(--mono); margin-bottom: 6px; letter-spacing: 0.04em;">Mon — Admin + Accounting · Daily intention</div><input class="intention-field" type="text" placeholder="Word of the day, affirmation, or performance state..."><div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);"><div class="card-title">Today’s schedule</div><div style="font-size: 12px; color: var(--muted); font-style: italic; margin-bottom: 10px;">Payroll submissions due. Balcony time to open the week.</div><div class="time-block"><span class="time-label">Before 7am</span><span class="time-content"><strong>Creative time</strong> — this is your time for you</span></div><div class="time-block"><span class="time-label">AM · coffee</span><span class="time-content"><strong>Build the King</strong> — hit the gym</span></div><div class="time-block"><span class="time-label">AM · coffee</span><span class="time-content"><strong>Balcony time</strong> — Build the Kingdom</span></div><div class="time-block"><span class="time-label"><span class="p-badge p1-badge" style="font-size: 10px;">P1</span></span><input type="text" placeholder="Top priority — high focus block..." style="flex: 1 1 0%; font-size: 13px; background: transparent; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image: initial; border-bottom: 1px solid var(--border); border-radius: 0px; padding: 4px 0px; color: var(--text);"></div><div class="time-block"><span class="time-label"><span class="p-badge p2-badge" style="font-size: 10px;">P2</span></span><input type="text" placeholder="Must get done today..." style="flex: 1 1 0%; font-size: 13px; background: transparent; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image: initial; border-bottom: 1px solid var(--border); border-radius: 0px; padding: 4px 0px; color: var(--text);"></div><div class="time-block"><span class="time-label">Lunch</span><span class="time-content"><strong>Unplugged</strong> — no devices</span></div><div class="time-block"><span class="time-label"><span class="p-badge p3-badge" style="font-size: 10px;">P3</span></span><input type="text" placeholder="Make progress on this today..." style="flex: 1 1 0%; font-size: 13px; background: transparent; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image: initial; border-bottom: 1px solid var(--border); border-radius: 0px; padding: 4px 0px; color: var(--text);"></div><div class="time-block"><span class="time-label">5pm</span><span class="time-content"><strong>Hard stop</strong></span></div></div></div><div class="card"><div class="card-title">Urgent &amp; quick tasks</div><div id="urgent-list-mon"><div style="font-size: 13px; color: var(--muted); font-style: italic; padding: 4px 0px;">No urgent tasks — add one below.</div></div><div style="display: flex; gap: 8px; margin-top: 10px;"><input type="text" id="urgent-input-mon" placeholder="Add urgent task... (Enter)" style="flex: 1 1 0%; margin: 0px;"><button class="btn btn-sm">+ Add</button></div><div style="display: flex; justify-content: flex-end; margin-top: 10px;"><button class="btn btn-sm" style="font-size: 12px; color: var(--muted);">Send unchecked to Task List →</button></div></div><div class="card"><div class="ritual-section"><div class="ritual-section-label">Workday close</div><div class="ritual-item"><div class="ritual-check">✓</div><span class="ritual-label">24-hr response on calls, emails, texts</span></div><div class="ritual-item"><div class="ritual-check">✓</div><span class="ritual-label">HubSpot updated</span></div><div class="ritual-item"><div class="ritual-check">✓</div><span class="ritual-label">Tomorrow's P1 identified</span></div></div></div></div>
   </div>
@@ -973,6 +989,9 @@ function emptyWeek(key){
     dayIntentions: {},
     dayRituals: {},
     dayUrgent: {},
+    // masterIds Brandon dismissed off a day this week — stops the due-date
+    // surfacing pass from putting a deleted row straight back on the day.
+    surfaceDismissed: {},
     pillars: { health:{goal:'',done:false}, wealth:{goal:'',done:false}, creative:{goal:'',done:false} }
   };
 }
@@ -994,6 +1013,7 @@ function ensureWeek(key){
   if (!w.dayIntentions) w.dayIntentions = {};
   if (!w.dayRituals) w.dayRituals = {};
   if (!w.dayUrgent) w.dayUrgent = {};
+  if (!w.surfaceDismissed) w.surfaceDismissed = {};
   if (!w.pillars) w.pillars = { health:{goal:'',done:false}, wealth:{goal:'',done:false}, creative:{goal:'',done:false} };
   ['health','wealth','creative'].forEach(function(k){ if(!w.pillars[k]) w.pillars[k] = {goal:'',done:false}; });
   if (!w.label) w.label = getWeekLabelForKey(key);
@@ -1331,13 +1351,14 @@ function toggleMasterItem(id) {
     S.masterItems.splice(idx + 1, 0, newTask);
   }
   save();
+  refreshSurfacing();
   renderMasterList();
 }
 
 function deleteMasterItem(id) {
   if (!S.masterItems) return;
   S.masterItems = S.masterItems.filter(i => i.id !== id);
-  save(); renderMasterList();
+  save(); refreshSurfacing(); renderMasterList();
 }
 
 function initMasterList() {
@@ -1372,6 +1393,7 @@ function addMasterItem() {
   input.value=''; subSel.value=''; subCustom.value=''; subCustom.style.display='none';
   if(madM) madM.value=''; if(madD) madD.value=''; if(madY) madY.value='';
   if(recurSel) recurSel.value='';
+  refreshSurfacing();
   renderMasterList();
 }
 
@@ -1578,6 +1600,11 @@ function renderMasterList() {
   const el=document.getElementById('master-list-items');
   if(!el||!S.masterItems) return;
   let items=S.masterItems;
+  // Items due a day of THIS week live on that day's urgent list instead — showing them
+  // in both places is how the master list turned back into a wall he stopped reading.
+  const onDays = surfacedMasterIds();
+  const onDaysCount = S.masterItems.filter(i=>!i.done&&onDays[i.id]).length;
+  if(masterFilter!=='done') items=items.filter(i=>!onDays[i.id]);
   if(masterFilter==='done') items=items.filter(i=>i.done);
   else if(masterFilter==='goodwolf') {
     items=items.filter(i=>i.pillar==='goodwolf'&&!i.done);
@@ -1596,7 +1623,19 @@ function renderMasterList() {
   });
 
   el.innerHTML='';
-  if(!items.length){el.innerHTML='<div style="font-size:13px;color:var(--muted);font-style:italic;padding:16px 0">Nothing here yet — add one above.</div>';return;}
+  if(onDaysCount && masterFilter!=='done'){
+    const note=document.createElement('div');
+    note.style.cssText='font-size:12px;color:var(--muted);font-family:var(--mono);padding:8px 10px;margin-bottom:10px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent);cursor:pointer';
+    note.textContent='↗ '+onDaysCount+' item'+(onDaysCount===1?' is':'s are')+' on your Daily schedule this week — due dated. Click to go there.';
+    note.onclick=function(){ switchTab('days'); };
+    el.appendChild(note);
+  }
+  if(!items.length){
+    const empty=document.createElement('div');
+    empty.style.cssText='font-size:13px;color:var(--muted);font-style:italic;padding:16px 0';
+    empty.textContent = onDaysCount ? 'Nothing left here — everything open is on a day this week.' : 'Nothing here yet — add one above.';
+    el.appendChild(empty); return;
+  }
   items.forEach(item=>el.appendChild(makeMasterRow(item)));
 }
 
@@ -1646,8 +1685,9 @@ function makeMasterRow(item) {
   meta.appendChild(subSelect);
   if(addTxt) { const t=document.createElement('span'); t.className='master-due'; t.textContent=addTxt; meta.appendChild(t); }
 
-  // Date selects — Mo / Dy / Yr dropdowns
-  meta.appendChild(makeDateInput(item, null));
+  // Date selects — Mo / Dy / Yr dropdowns. Re-dating an item to a day of this week is
+  // what sends it to that day, so the list has to repaint the moment the date changes.
+  meta.appendChild(makeDateInput(item, function(){ refreshSurfacing(); renderMasterList(); }));
 
   // Recurrence selector
   const recurWrap = document.createElement('select');
@@ -2085,8 +2125,8 @@ async function pushToArchive(data) {
 
 // ── AI BRAIN DUMP TRIAGE ──────────────────────────────────────
 
-async function analyzeBrainDump() {
-  var bd = document.getElementById('brain-dump');
+async function analyzeBrainDump(srcId) {
+  var bd = document.getElementById(srcId || 'brain-dump');
   if (!bd) return;
   var text = bd.value.trim();
   if (!text) { alert('Brain dump is empty. Add some thoughts first.'); return; }
@@ -2203,8 +2243,46 @@ function renderTriageList() {
     dueInp.value = item.dueDate ? (function(d){ var p=d.split('-'); return p[1]+'/'+p[2]+'/'+p[0].slice(2); })(item.dueDate) : '';
     dueInp.style.cssText='width:90px;font-size:12px;font-family:var(--mono);text-align:center';
     dueInp.oninput = function(){ autoSlash(this); };
-    dueInp.onblur = function(){ var parsed=parseDateInput(this.value); triageQueue[i].dueDate=parsed; this.value=parsed?(function(d){var p=d.split('-');return p[1]+'/'+p[2]+'/'+p[0].slice(2);})(parsed):''; };
     row2.appendChild(dueInp);
+
+    // Destination. "Master list" is the old behaviour; picking a day sets the deadline
+    // to that day, and the surfacing pass puts it on that day's urgent list — one
+    // mechanism serving both, rather than a second parallel route into the week.
+    // There is deliberately no P1/P2/P3 option here: priorities are a call Brandon
+    // makes at the balcony, and nothing should fill them on his behalf.
+    var destSel = document.createElement('select'); destSel.className='master-select'; destSel.style.fontSize='12px';
+    var o0 = document.createElement('option'); o0.value=''; o0.textContent='→ Master list'; destSel.appendChild(o0);
+    DAYS.forEach(function(d, ix){
+      var o = document.createElement('option'); o.value = d.key;
+      o.textContent = '→ ' + d.name + ' ' + fmtDate(_dateForWeekdayInWeek(d.key, S.currentWeekKey));
+      destSel.appendChild(o);
+    });
+    // Seed from the date the AI already chose, so a task it flagged for Wednesday
+    // arrives pre-pointed at Wednesday.
+    if (item.dest === undefined) {
+      var seedIdx = _weekdayIdxInWeek(item.dueDate, S.currentWeekKey);
+      item.dest = seedIdx >= 0 ? CARRY_DAYS[seedIdx] : '';
+    }
+    destSel.value = item.dest || '';
+    destSel.onchange = function(){
+      triageQueue[i].dest = this.value;
+      if (this.value) {
+        // The day picker is a shortcut for setting the deadline — keep the preview honest.
+        triageQueue[i].dueDate = _dateForWeekdayInWeek(this.value, S.currentWeekKey);
+        dueInp.value = dateToDisplay(triageQueue[i].dueDate);
+      }
+    };
+    // Typing a date wins over the picker, and re-points it.
+    dueInp.onblur = function(){
+      var parsed = parseDateInput(this.value);
+      triageQueue[i].dueDate = parsed;
+      this.value = parsed ? dateToDisplay(parsed) : '';
+      var ix = _weekdayIdxInWeek(parsed, S.currentWeekKey);
+      triageQueue[i].dest = ix >= 0 ? CARRY_DAYS[ix] : '';
+      destSel.value = triageQueue[i].dest;
+    };
+    row2.appendChild(destSel);
+
     card.appendChild(row2);
     list.appendChild(card);
   });
@@ -2216,7 +2294,11 @@ function approveAllTriage() {
     if (item._skip || !item.text.trim()) return;
     if (item.type === 'task') {
       if (!S.masterItems) S.masterItems = [];
-      var dueDate = item.dueDate || defaultDueDateForCategory(item.pillar||'goodwolf', item.sub||'');
+      // A chosen day is authoritative — it is just a deadline, which is what puts the
+      // task on that day. Everything still lands in masterItems; nothing is duplicated.
+      var dueDate = (item.dest && _dateForWeekdayInWeek(item.dest, S.currentWeekKey))
+        || item.dueDate
+        || defaultDueDateForCategory(item.pillar||'goodwolf', item.sub||'');
       S.masterItems.unshift({
         id: 'triage_' + Date.now() + '_' + Math.random(),
         text: item.text,
@@ -2239,12 +2321,18 @@ function approveAllTriage() {
   // Clear the current week's brain dump after successful triage.
   cw().brainDump = '';
   save();
+  // Anything triaged onto a day of this week goes to that day now, not on next load.
+  runMasterDueSurfacing();
   closeTriage();
   renderMasterList();
   renderWeeklyReview();
+  renderDaySelector();
   // Clear the on-screen brain dump only if we're viewing the week we just triaged.
   var bd = document.getElementById('brain-dump');
   if (bd && S.viewWeekKey === S.currentWeekKey) bd.value = '';
+  var bdd = document.getElementById('brain-dump-days');
+  if (bdd) bdd.value = '';
+  renderDumpBadge();
 }
 
 function closeTriage() {
@@ -2269,6 +2357,9 @@ function init() {
   // Build/refresh the keyed week timeline before anything reads it.
   migrateToWeeksModel();
   autoAdvanceWeek();
+  // Order matters: put dated master work on its own day FIRST, then let the
+  // carry-forward walk anything already missed onto today.
+  runMasterDueSurfacing();
   runDailyCarryForward();
   const wn = getWeekNum();
   // The top header always shows the calendar's current week (not the view week).
@@ -2318,6 +2409,7 @@ function init() {
   renderAllAreaGoals();
   renderWeeklyReview();
   renderDaySelector();
+  renderDayBrainDump();
   renderQObjs();
 }
 
@@ -2597,11 +2689,33 @@ function renderUrgentList(key) {
     const span = document.createElement('span');
     span.className = 'ritual-label' + (item.done ? ' done' : '');
     span.style.flex = '1'; span.textContent = item.text;
+    row.appendChild(chk); row.appendChild(span);
+
+    // Slipped from an earlier day — the same marker the priority rows use.
+    if (item.carried && !item.done) {
+      const car = document.createElement('span');
+      car.textContent = '↷'; car.title = 'Carried forward from an earlier day';
+      car.style.cssText = 'flex:none;font-size:13px;color:var(--muted);cursor:default;padding:0 2px';
+      row.appendChild(car);
+    }
+    // A window onto the Master Task List, not a copy of it — say so, and show the
+    // real deadline so a task that has been sliding is visibly sliding.
+    if (item.masterId) {
+      const m = _masterById(item.masterId);
+      const tag = document.createElement('span');
+      tag.textContent = (m && m.dueDate) ? ('due ' + fmtDate(m.dueDate)) : 'task list';
+      tag.title = 'From the Master Task List — checking it off here completes it there';
+      tag.style.cssText = 'flex:none;font-size:10px;font-family:var(--mono);color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:1px 5px';
+      if (m && isOverdue(m.dueDate) && !item.done) { tag.style.color = 'var(--red)'; tag.style.borderColor = 'var(--red)'; }
+      row.appendChild(tag);
+    }
+
     const del = document.createElement('span');
     del.style.cssText = 'font-size:16px;color:var(--border2);cursor:pointer;padding:0 4px';
     del.innerHTML = '&times;';
+    del.title = item.masterId ? 'Take off this day (stays in the Master Task List)' : 'Remove';
     del.onclick = (function(idx){ return function(){ deleteUrgentItem(key, idx); }; })(i);
-    row.appendChild(chk); row.appendChild(span); row.appendChild(del);
+    row.appendChild(del);
     el.appendChild(row);
   });
 }
@@ -2620,31 +2734,54 @@ function addUrgentItem(key) {
 }
 
 function toggleUrgentItem(key, i) {
-  var DU = cw().dayUrgent;
+  var C = cw(), DU = C.dayUrgent;
   var dateKey = dayKeyFromWeekday(key);
   var items = DU[dateKey] || DU[key];
   if (!items) return;
   var storeKey = DU[dateKey] ? dateKey : key;
-  DU[storeKey][i].done = !DU[storeKey][i].done;
+  var item = DU[storeKey][i];
+  if (!item) return;
+  item.done = !item.done;
+  // If this row is a window onto a master item, the check-off IS the master
+  // item's check-off — that is the whole point of the link.
+  syncMasterFromUrgent(item);
   save();
   renderUrgentList(key);
 }
 
 function deleteUrgentItem(key, i) {
-  var DU = cw().dayUrgent;
+  var C = cw(), DU = C.dayUrgent;
   var dateKey = dayKeyFromWeekday(key);
   var storeKey = DU[dateKey] ? dateKey : key;
-  if (!DU[storeKey]) return;
+  if (!DU[storeKey] || !DU[storeKey][i]) return;
+  var item = DU[storeKey][i];
+  // Removing a surfaced row takes it off the day, it does NOT delete the task —
+  // it goes back to living in the Master Task List with its deadline intact.
+  // Remembering the dismissal is what stops the next surfacing pass re-adding it.
+  if (item.masterId) {
+    if (!C.surfaceDismissed) C.surfaceDismissed = {};
+    C.surfaceDismissed[item.masterId] = true;
+  }
   DU[storeKey].splice(i, 1);
   save();
   renderUrgentList(key);
+  renderMasterList();
 }
 
 function sendUrgentToTaskList(key) {
-  const DU = cw().dayUrgent;
+  const C = cw();
+  const DU = C.dayUrgent;
   const items = DU[key] || [];
-  const unchecked = items.filter(i => !i.done);
-  if (!unchecked.length) { alert('No unchecked tasks to send.'); return; }
+  const openRows = items.filter(i => !i.done);
+  // Rows that came FROM the master list are already there — sending them would mint a
+  // duplicate. They just come off the day; the original keeps its deadline.
+  const linked = openRows.filter(i => i.masterId);
+  const unchecked = openRows.filter(i => !i.masterId);
+  if (!openRows.length) { alert('No unchecked tasks to send.'); return; }
+  if (linked.length) {
+    if (!C.surfaceDismissed) C.surfaceDismissed = {};
+    linked.forEach(i => { C.surfaceDismissed[i.masterId] = true; });
+  }
   if (!S.masterItems) S.masterItems = [];
   const now = new Date();
   const dayOfWeek = now.getDay();
@@ -2668,9 +2805,11 @@ function sendUrgentToTaskList(key) {
   DU[key] = items.filter(i => i.done);
   save();
   renderUrgentList(key);
+  renderMasterList();
   const status = document.createElement('div');
   status.style.cssText = 'font-size:12px;color:var(--green-light);font-family:var(--mono);margin-top:6px;text-align:right';
-  status.textContent = unchecked.length + ' task' + (unchecked.length !== 1 ? 's' : '') + ' sent to Master Task List';
+  status.textContent = unchecked.length + ' task' + (unchecked.length !== 1 ? 's' : '') + ' sent to Master Task List'
+    + (linked.length ? ' · ' + linked.length + ' returned (already there)' : '');
   const card = document.getElementById('urgent-list-' + key).closest('.card');
   if (card) card.appendChild(status);
   setTimeout(() => status.remove(), 3000);
@@ -2709,7 +2848,11 @@ function collectUnfinished(C){
   });
   var DU = C.dayUrgent || {};
   Object.keys(DU).forEach(function(k){
-    (DU[k] || []).forEach(function(u){ if (u && u.text && u.text.trim() && !u.done) out.push(u.text.trim()); });
+    (DU[k] || []).forEach(function(u){
+      // Surfaced master items are skipped: they already ARE master items. Sweeping
+      // them would re-add a second copy of the same task every single week.
+      if (u && !u.masterId && u.text && u.text.trim() && !u.done) out.push(u.text.trim());
+    });
   });
   return out;
 }
@@ -2734,14 +2877,20 @@ function _carryDayKeys(weekKey, idx){
   return [_ymd(d), CARRY_DAYS[idx]];
 }
 
-// Append to a day's urgent list, skipping anything already queued there.
-function _carryPush(dest, text){
+// Append to a day's urgent list, skipping anything already queued there. A surfaced
+// master item is matched by its link first — the wording can be edited in the Master
+// List, so text alone is not a reliable identity for those rows.
+function _carryPush(dest, text, masterId){
   var t = (text || '').trim();
   if (!t) return 0;
   for (var i = 0; i < dest.length; i++) {
-    if (dest[i] && (dest[i].text || '').trim() === t) return 0;
+    if (!dest[i]) continue;
+    if (masterId && dest[i].masterId === masterId) return 0;
+    if ((dest[i].text || '').trim() === t) return 0;
   }
-  dest.push({ text: t, done: false, carried: true });
+  var row = { text: t, done: false, carried: true };
+  if (masterId) row.masterId = masterId;
+  dest.push(row);
   return 1;
 }
 
@@ -2773,7 +2922,7 @@ function runDailyCarryForward(){
         var keep = [];
         for (var u = 0; u < src.length; u++) {
           var it = src[u];
-          if (it && (it.text || '').trim() && !it.done) moved += _carryPush(dest, it.text);
+          if (it && (it.text || '').trim() && !it.done) moved += _carryPush(dest, it.text, it.masterId);
           else if (it) keep.push(it);
         }
         C.dayUrgent[keys[k]] = keep;
@@ -2782,6 +2931,116 @@ function runDailyCarryForward(){
   }
   if (moved) save();
   return moved;
+}
+
+// ── Master-list due-date surfacing ─────────────────────────────────
+// A master item whose deadline lands on a day of the LIVE week shows up on that day's
+// urgent list and is hidden from the Master Task List, so dated work arrives where
+// Brandon actually looks instead of waiting to be discovered.
+//
+// The day row is a WINDOW onto the master item, never a copy: it carries `masterId`,
+// and the master item stays the single source of truth for text and done-state. That
+// is what makes the round trip safe — check it off on the day and it completes in the
+// Master List; leave it and the daily carry-forward walks the same linked row to the
+// next day; close the week and the link simply ends, so the item reappears in the
+// Master List for the hygiene pass to re-bucket. Nothing is ever duplicated, because
+// nothing is ever copied.
+function _masterById(id){
+  if (!id || !S.masterItems) return null;
+  for (var i = 0; i < S.masterItems.length; i++) if (S.masterItems[i].id === id) return S.masterItems[i];
+  return null;
+}
+
+// Every masterId currently sitting on a day of the live week. Doubles as the guard
+// that stops a row the carry-forward already walked to Wednesday from being
+// re-surfaced onto Monday, where its due date still points.
+function surfacedMasterIds(){
+  var out = {}, C = cw(), DU = (C && C.dayUrgent) || {};
+  Object.keys(DU).forEach(function(k){
+    (DU[k] || []).forEach(function(it){ if (it && it.masterId) out[it.masterId] = true; });
+  });
+  return out;
+}
+
+// Weekday index (0=Mon .. 5=Sat) for a date inside weekKey, or -1 if it falls outside.
+// Sunday and anything overdue from an earlier week deliberately return -1: old debt
+// belongs to the weekly hygiene pass, not to today's list.
+function _weekdayIdxInWeek(dateStr, weekKey){
+  if (!dateStr || !weekKey) return -1;
+  var mon = dateFromKey(weekKey), d = dateFromKey(dateStr);
+  if (isNaN(d.getTime()) || isNaN(mon.getTime())) return -1;
+  var diff = Math.round((d - mon) / 86400000);   // rounded: a DST boundary must not shift the day
+  return (diff >= 0 && diff <= 5) ? diff : -1;
+}
+
+// The inverse: the calendar date a weekday key ('wed') points at in a given week.
+function _dateForWeekdayInWeek(dayKey, weekKey){
+  var idx = CARRY_DAYS.indexOf(dayKey);
+  if (idx < 0) return '';
+  var d = dateFromKey(weekKey || getCurrentMondayKey());
+  d.setDate(d.getDate() + idx);
+  return _ymd(d);
+}
+
+function runMasterDueSurfacing(){
+  if (!S.masterItems) return 0;
+  if (S.currentWeekKey !== getCurrentMondayKey()) return 0;   // never mutate a week being reviewed
+  var C = cw(), added = 0, changed = false;
+  if (!C.dayUrgent) C.dayUrgent = {};
+  if (!C.surfaceDismissed) C.surfaceDismissed = {};
+
+  // 1. Reconcile what is already surfaced. The master item wins on every field it
+  //    owns, and a master item that no longer exists takes its window with it.
+  Object.keys(C.dayUrgent).forEach(function(k){
+    var rows = C.dayUrgent[k];
+    if (!Array.isArray(rows)) return;
+    var keep = [];
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (!r || !r.masterId) { if (r) keep.push(r); continue; }
+      var m = _masterById(r.masterId);
+      if (!m) { changed = true; continue; }
+      if (r.text !== m.text) { r.text = m.text; changed = true; }
+      if (!!r.done !== !!m.done) { r.done = !!m.done; changed = true; }
+      keep.push(r);
+    }
+    if (keep.length !== rows.length) { C.dayUrgent[k] = keep; changed = true; }
+  });
+
+  // 2. Surface anything newly due this week onto its own day.
+  var seen = surfacedMasterIds();
+  S.masterItems.forEach(function(it){
+    if (it.done || !it.dueDate || seen[it.id] || C.surfaceDismissed[it.id]) return;
+    var idx = _weekdayIdxInWeek(it.dueDate, S.currentWeekKey);
+    if (idx < 0) return;
+    var dayKey = CARRY_DAYS[idx];
+    if (!Array.isArray(C.dayUrgent[dayKey])) C.dayUrgent[dayKey] = [];
+    C.dayUrgent[dayKey].push({ text: it.text, done: false, masterId: it.id });
+    seen[it.id] = true;
+    added++;
+  });
+
+  if (added || changed) save();
+  return added;
+}
+
+// Re-run surfacing and repaint whichever day is on screen. Called after every master-list
+// edit so the day view and the list can never end up showing two different truths.
+function refreshSurfacing(){
+  runMasterDueSurfacing();
+  var active = document.querySelector('.day-btn.active');
+  if (active && active.id) renderUrgentList(active.id.replace('daybtn-',''));
+}
+
+// Push a surfaced row's done-state back onto the master item it points at. Routed
+// through toggleMasterItem so a recurring task still regenerates its next occurrence
+// exactly as it would if he had checked it off in the Master List himself.
+function syncMasterFromUrgent(item){
+  if (!item || !item.masterId) return;
+  var m = _masterById(item.masterId);
+  if (!m || !!m.done === !!item.done) return;
+  if (item.done) toggleMasterItem(m.id);
+  else { m.done = false; save(); renderMasterList(); }
 }
 
 // Move the active "planning week" (the week the Daily schedule + Close act on) backward
@@ -2846,6 +3105,42 @@ function closeWeekAndStartFresh(){
   alert(msg);
 }
 
+// ── Brain dump: same inbox, two places ─────────────────────────────
+// The Weekly Review textarea edits the week being VIEWED; the Daily schedule mirror
+// always edits the live week, which is the one triage acts on. When those are the same
+// week — the normal case — each keystroke updates the other so they can never disagree.
+function renderDayBrainDump(){
+  var el = document.getElementById('brain-dump-days');
+  if (!el) return;
+  el.value = cw().brainDump || '';
+  el.oninput = function(){
+    cw().brainDump = this.value;
+    if (S.viewWeekKey === S.currentWeekKey) {
+      var other = document.getElementById('brain-dump');
+      if (other) other.value = this.value;
+    }
+    save();
+    renderDumpBadge();
+  };
+  renderDumpBadge();
+}
+
+// Untriaged lines sitting in the live week's brain dump. The count rides on the
+// Weekly Review tab so a filling inbox is visible from whatever tab he's on.
+function dumpPendingCount(){
+  var lines = (cw().brainDump || '').split('\n'), n = 0;
+  for (var i = 0; i < lines.length; i++) if (lines[i].trim()) n++;
+  return n;
+}
+function renderDumpBadge(){
+  var b = document.getElementById('tab-dump-badge');
+  if (!b) return;
+  var n = dumpPendingCount();
+  b.textContent = n;
+  b.style.display = n ? 'inline-block' : 'none';
+  b.title = n + ' line' + (n === 1 ? '' : 's') + ' waiting to be triaged';
+}
+
 // Renders the Weekly Review panel for whatever S.viewWeekKey points at.
 function renderWeeklyReview() {
   var W = vw();
@@ -2869,7 +3164,19 @@ function renderWeeklyReview() {
   }
   // Brain dump (view week)
   var bd = document.getElementById('brain-dump');
-  if (bd) { bd.value = W.brainDump || ''; bd.oninput = function(){ vw().brainDump = this.value; save(); }; }
+  if (bd) {
+    bd.value = W.brainDump || '';
+    bd.oninput = function(){
+      vw().brainDump = this.value;
+      if (S.viewWeekKey === S.currentWeekKey) {
+        var other = document.getElementById('brain-dump-days');
+        if (other) other.value = this.value;
+      }
+      save();
+      renderDumpBadge();
+    };
+  }
+  renderDumpBadge();
   // Weekly goals + the Goals set/done metric
   renderWeeklyGoals();
   // Reflection (5 prompts)
@@ -3000,7 +3307,12 @@ function switchTab(id) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   ['weekly-review','days','master','framework'].forEach((t,i) => { if(t===id) { document.querySelectorAll('.tab')[i].classList.add('active'); document.getElementById('panel-'+t).classList.add('active'); } });
   if (id==='weekly-review') renderWeeklyReview();
-  if (id==='days') renderDaySelector();
+  if (id==='days') {
+    // A due date typed in the Master List should be on the day by the time he gets here.
+    runMasterDueSurfacing();
+    renderDaySelector();
+    renderDayBrainDump();
+  }
   if (id==='framework') {
     renderQObjs(); renderMonthlyTargets(); renderActionPlan(); renderMonthlyReviews(); renderArchive();
     var yg = document.getElementById('year-goal'); if(yg) yg.value = S.yearGoal||'';
@@ -3037,6 +3349,7 @@ async function importMeetingItems() {
     S.viewWeekKey = S.currentWeekKey; // show the week we just wrote to
     save();
     if (typeof renderWeeklyReview === 'function') renderWeeklyReview();
+    if (typeof renderDayBrainDump === 'function') renderDayBrainDump();
     try {
       await fetch('https://api.jsonbin.io/v3/b/' + INBOX_BIN, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': jbKey() }, body: JSON.stringify({ items: [], _updated: Date.now() }) });
     } catch (e) { console.warn('inbox clear failed', e); }
