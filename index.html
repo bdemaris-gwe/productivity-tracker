@@ -2125,6 +2125,11 @@ async function pushToArchive(data) {
 
 // ── AI BRAIN DUMP TRIAGE ──────────────────────────────────────
 
+// Key a brain-dump line for hint lookup. Whitespace and case only — if Brandon
+// rewords a line before triaging, the hint simply stops matching and the model
+// classifies it, which is the right failure.
+function _dumpKey(s){ return String(s || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+
 async function analyzeBrainDump(srcId) {
   var bd = document.getElementById(srcId || 'brain-dump');
   if (!bd) return;
@@ -2142,20 +2147,34 @@ async function analyzeBrainDump(srcId) {
   var approveBtn = document.getElementById('approve-btn');
   if (approveBtn) approveBtn.style.display = 'none';
 
+  // Lines queued by an automated batch already know their category — release-radar
+  // outreach is Good Wolf / Sales, not a Creative task that happens to mention an
+  // album. Those are taken VERBATIM (which is what push-inbox's phrasing rules
+  // already assume) and never shown to the model, so a monthly batch classifies
+  // the same way every month instead of drifting.
+  var hints = S.dumpHints || {};
+  var preset = [], rest = [];
+  text.split('\n').forEach(function(line){
+    var t = line.trim();
+    if (!t) return;
+    var h = hints[_dumpKey(t)];
+    if (h) preset.push({ text: t, pillar: h.pillar || 'goodwolf', sub: h.sub || '', dueDate: '', type: 'task', _presetFrom: h.source || 'queued batch' });
+    else rest.push(t);
+  });
+
   try {
-    var pillarDesc = 'health (fitness/nutrition/recovery), wealth (personal finance, NOT business), creative (music/art/Be Here Now), goodwolf (Good Wolf Events: accounting/legal/production/marketing/sales/admin)';
-    var prompt = 'Analyze this brain dump and extract discrete actionable tasks. Pillars: ' + pillarDesc + '. For each task return JSON with: text (concise actionable), pillar (health/wealth/creative/goodwolf), sub (sub-category if goodwolf else empty), dueDate (YYYY-MM-DD if urgent else empty), type (task/goal/note). Return ONLY a JSON array: ' + text;
-
-    var response = await fetch('/.netlify/functions/triage', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text })
-    });
-
-    if (!response.ok) throw new Error('Function error: ' + response.status);
-    var data = await response.json();
-    if (!Array.isArray(data)) throw new Error('Invalid response format');
-    triageQueue = data;
+    var data = [];
+    if (rest.length) {
+      var response = await fetch('/.netlify/functions/triage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: rest.join('\n') })
+      });
+      if (!response.ok) throw new Error('Function error: ' + response.status);
+      data = await response.json();
+      if (!Array.isArray(data)) throw new Error('Invalid response format');
+    }
+    triageQueue = preset.concat(data);
 
     // Pre-fill default due dates so the preview shows what each item WILL get on approve.
     // Only fills blanks; preserves any urgency-detected dates from the AI.
@@ -2166,15 +2185,17 @@ async function analyzeBrainDump(srcId) {
     });
 
     renderTriageList();
-    if (status) status.textContent = triageQueue.length + ' items found. Review and approve.';
+    if (status) status.textContent = triageQueue.length + ' items found. Review and approve.'
+      + (preset.length ? '  (' + preset.length + ' pre-classified from a queued batch)' : '');
     if (approveBtn) approveBtn.style.display = 'block';
   } catch(e) {
     console.error('AI triage error:', e);
     if (status) status.textContent = 'AI analysis failed. Add items manually.';
-    // Fallback: split by line and treat each as a task
-    triageQueue = text.split('\n').filter(function(l){ return l.trim(); }).map(function(l){
-      return { text: l.trim(), pillar: 'goodwolf', sub: '', dueDate: defaultDueDateForCategory('goodwolf',''), type: 'task' };
-    });
+    // Fallback: keep the pre-classified lines exactly as they are — they never
+    // needed the model — and treat the remainder as plain one-line tasks.
+    triageQueue = preset.concat(rest.map(function(l){
+      return { text: l, pillar: 'goodwolf', sub: '', dueDate: defaultDueDateForCategory('goodwolf',''), type: 'task' };
+    }));
     renderTriageList();
     if (approveBtn) approveBtn.style.display = 'block';
   }
@@ -2203,6 +2224,15 @@ function renderTriageList() {
     });
     typeSelect.onchange = function(){ triageQueue[i].type = this.value; };
     typeBadge.appendChild(typeSelect);
+
+    // Say why this one arrived pre-sorted, so an override is a decision and not a surprise.
+    if (item._presetFrom) {
+      var src = document.createElement('span');
+      src.textContent = 'auto · ' + item._presetFrom;
+      src.title = 'Category came with the queued batch, not from the AI. Change it here if it is wrong.';
+      src.style.cssText = 'font-size:10px;font-family:var(--mono);color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:1px 5px';
+      typeBadge.appendChild(src);
+    }
 
     // Skip checkbox
     var skipLabel = document.createElement('label');
@@ -2318,8 +2348,10 @@ function approveAllTriage() {
     }
     // 'note' type: skip for now, just informational
   });
-  // Clear the current week's brain dump after successful triage.
+  // Clear the current week's brain dump after successful triage. The category hints
+  // are keyed to those lines, so they go with them rather than accumulating forever.
   cw().brainDump = '';
+  S.dumpHints = {};
   save();
   // Anything triaged onto a day of this week goes to that day now, not on next load.
   runMasterDueSurfacing();
@@ -3340,7 +3372,24 @@ async function importMeetingItems() {
     var res = await fetch('https://api.jsonbin.io/v3/b/' + INBOX_BIN + '/latest', { headers: { 'X-Master-Key': jbKey(), 'X-Bin-Meta': 'false' } });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     var data = await res.json();
-    var items = (data && Array.isArray(data.items)) ? data.items.map(function(s){ return String(s).trim(); }).filter(Boolean) : [];
+    // items[] and meta[] are index-aligned by push-inbox.js, so walk them together
+    // rather than filtering items first — a dropped blank would shift every category.
+    var rawItems = (data && Array.isArray(data.items)) ? data.items : [];
+    var rawMeta  = (data && Array.isArray(data.meta))  ? data.meta  : [];
+    var items = [];
+    if (!S.dumpHints) S.dumpHints = {};
+    rawItems.forEach(function(s, ix){
+      var t = String(s).trim();
+      if (!t) return;
+      items.push(t);
+      // A queued batch can stamp its own category — release-radar outreach is Good
+      // Wolf / Sales. Remember it against the line so triage never has to re-derive
+      // it from wording that reads like a music task.
+      var m = rawMeta[ix];
+      if (m && (m.pillar || m.sub)) {
+        S.dumpHints[_dumpKey(t)] = { pillar: m.pillar || 'goodwolf', sub: m.sub || '', source: m.source || 'queued batch' };
+      }
+    });
     if (!items.length) { alert('No new meeting action items to import.'); return; }
     var W = cw(); // current week — where Analyze & Triage reads
     var cur = (typeof W.brainDump === 'string') ? W.brainDump : '';

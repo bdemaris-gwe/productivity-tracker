@@ -13,10 +13,14 @@ exports.handler = async function(event) {
     const todayStr = today.toISOString().split('T')[0];
     const todayDay = dayNames[today.getDay()];
 
-    const pillarDesc = 'health (fitness/nutrition/recovery), wealth (personal finance NOT business), creative (music/art/Be Here Now album), goodwolf (Good Wolf Events business: sub-categories are accounting/legal/production/marketing/sales/admin)';
+    // The creative/goodwolf line is the one that gets mis-drawn: the user runs a live
+    // events business whose whole subject matter is music, so a task can mention an
+    // artist, an album or a venue and still be sales work. Creative means HIS OWN art.
+    const pillarDesc = 'health (fitness/nutrition/recovery), wealth (personal finance NOT business), creative (ONLY his own art: his BWD Artist music, the Be Here Now album, songwriting, Melody\'s Joy), goodwolf (Good Wolf Events business: sub-categories are accounting/legal/production/marketing/sales/admin)';
+    const pillarRule = 'IMPORTANT pillar rule: anything about OTHER artists, bands, venues, promoters, bookings, releases or ticketing is goodwolf business, NOT creative — reaching out to an artist or their booking contact about an upcoming release, show or ticketing is goodwolf with sub "sales". Only classify as creative when the task is about the user making or promoting HIS OWN music.';
     const dateContext = 'Today is ' + todayStr + ' (' + todayDay + '). The user works on a Mon-Sat schedule with day themes: Mon=Admin/Accounting/Legal, Tue=Production, Wed=Marketing, Thu=Sales, Fri=Business Catchall, Sat=Personal Catchall.';
     const dueRule = 'For dueDate: ONLY fill in if the brain dump explicitly signals urgency (e.g., "by Friday", "today", "tomorrow", "next week"). If no urgency is signaled, leave dueDate as empty string — the app will assign a default based on category. Resolve relative dates against today\'s date above.';
-    const prompt = dateContext + ' ' + dueRule + ' Analyze this brain dump and extract discrete actionable items. Pillars: ' + pillarDesc + '. For each item return JSON with: text (concise actionable phrase), pillar (health/wealth/creative/goodwolf), sub (sub-category if goodwolf, else empty string), dueDate (YYYY-MM-DD if urgency explicitly signaled in text, else empty string), type (task for action items, goal for weekly goals, note for reference info). Return ONLY a valid JSON array with no other text, preamble or markdown: ' + text;
+    const prompt = dateContext + ' ' + dueRule + ' Analyze this brain dump and extract discrete actionable items. Pillars: ' + pillarDesc + '. ' + pillarRule + ' For each item return JSON with: text (concise actionable phrase), pillar (health/wealth/creative/goodwolf), sub (sub-category if goodwolf, else empty string), dueDate (YYYY-MM-DD if urgency explicitly signaled in text, else empty string), type (task for action items, goal for weekly goals, note for reference info). Return ONLY a valid JSON array with no other text, preamble or markdown: ' + text;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
