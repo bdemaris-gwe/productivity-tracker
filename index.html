@@ -3096,6 +3096,13 @@ function closeWeekAndStartFresh(){
   var lead = unfinished.length
     ? ('This will carry ' + unfinished.length + ' unfinished item' + (unfinished.length === 1 ? '' : 's') + ' to the Master List (tagged Unsorted), then open next week.\n\n')
     : 'This will open next week to plan.\n\n';
+  // Say the brain dump is safe BEFORE he clicks. The whole problem was a field going
+  // blank with no explanation, which reads as deletion even though nothing is deleted.
+  var pendingDump = dumpPendingCount();
+  if (pendingDump) {
+    lead += '🧠 Your ' + pendingDump + ' un-triaged brain dump line'
+      + (pendingDump === 1 ? '' : 's') + ' will carry forward — nothing is cleared here.\n\n';
+  }
   if (!confirm(lead + 'Close this week and start fresh?')) return;
 
   if (!S.masterItems) S.masterItems = [];
@@ -3116,10 +3123,40 @@ function closeWeekAndStartFresh(){
   S.currentWeekKey = nextKey;
   S.viewWeekKey = nextKey;
   ensureWeek(nextKey);
+
+  // ⛔ THE BRAIN DUMP IS A ROLLING INBOX, NOT A WEEKLY ARTIFACT.
+  // It is stored per-week, so advancing currentWeekKey used to make it LOOK erased —
+  // the new week simply starts blank. Nothing was ever deleted (the outgoing week still
+  // holds its copy), but a field going empty IS data loss as far as the user is concerned.
+  // On 2026-08-15 Brandon copied his out by hand before clicking this button because he
+  // expected to lose it, and was right about what he'd see.
+  // TRIAGE is what clears the dump (see triage handler) — the week boundary is not.
+  // Carry untriaged lines forward, deduped so re-closing or a manual paste can't double them.
+  var carriedCount = 0;
+  var prevDump = (S.weeks[base] && typeof S.weeks[base].brainDump === 'string') ? S.weeks[base].brainDump : '';
+  if (prevDump.trim()) {
+    var nextDump = (typeof S.weeks[nextKey].brainDump === 'string') ? S.weeks[nextKey].brainDump : '';
+    var seen = {}, out = [];
+    nextDump.split('\n').forEach(function(l){
+      out.push(l);
+      if (l.trim()) seen[l.trim()] = 1;
+    });
+    prevDump.split('\n').forEach(function(l){
+      var t = l.trim();
+      if (!t || seen[t]) return;
+      seen[t] = 1; out.push(l); carriedCount++;
+    });
+    S.weeks[nextKey].brainDump = out.join('\n').replace(/^\n+/, '');
+  }
+
   save();
   init();
 
   var msg = 'Fresh week started: ' + (getWeekLabelForKey(nextKey) || nextKey) + '. Time to plan.';
+  if (carriedCount) {
+    msg += '\n\n🧠 ' + carriedCount + ' un-triaged brain dump line'
+      + (carriedCount === 1 ? '' : 's') + ' carried forward. Triage clears them, not the week.';
+  }
   if (hyg) {
     var moved = hyg.week + hyg.month + hyg.quarter + hyg.someday;
     if (hyg.rolled || moved) {
