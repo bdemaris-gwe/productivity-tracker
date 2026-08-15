@@ -2871,11 +2871,21 @@ function savePDone(day, idx, done) { var C = cw(); _pCell(C, day, idx).done = !!
 
 // Gather every unfinished daily priority + urgent task in a week as plain text strings.
 function collectUnfinished(C){
-  var out = [];
+  // Deduped: daily carry-forward COPIES an unfinished priority onto the next day, and the
+  // same text can also sit in an urgent list, so one real task is easily three rows by
+  // Saturday. Undeduped, each copy became its own Master List item ("Clear my beach week"
+  // landed twice on 2026-08-15). Same normalization triage uses, so "  Foo " == "foo".
+  var out = [], seen = {};
+  var take = function(t){
+    var k = _dumpKey(t);
+    if (!k || seen[k]) return;
+    seen[k] = 1;
+    out.push(t);
+  };
   var DP = C.dayPriorities || {};
   ['mon','tue','wed','thu','fri','sat'].forEach(function(k){
     (DP[k] || []).forEach(function(p){
-      if (p && typeof p === 'object' && p.text && p.text.trim() && !p.done) out.push(p.text.trim());
+      if (p && typeof p === 'object' && p.text && p.text.trim() && !p.done) take(p.text.trim());
     });
   });
   var DU = C.dayUrgent || {};
@@ -2883,7 +2893,7 @@ function collectUnfinished(C){
     (DU[k] || []).forEach(function(u){
       // Surfaced master items are skipped: they already ARE master items. Sweeping
       // them would re-add a second copy of the same task every single week.
-      if (u && !u.masterId && u.text && u.text.trim() && !u.done) out.push(u.text.trim());
+      if (u && !u.masterId && u.text && u.text.trim() && !u.done) take(u.text.trim());
     });
   });
   return out;
@@ -3094,7 +3104,7 @@ function closeWeekAndStartFresh(){
   var C = cw();
   var unfinished = collectUnfinished(C);
   var lead = unfinished.length
-    ? ('This will carry ' + unfinished.length + ' unfinished item' + (unfinished.length === 1 ? '' : 's') + ' to the Master List (tagged Unsorted), then open next week.\n\n')
+    ? ('This will carry ' + unfinished.length + ' unfinished item' + (unfinished.length === 1 ? '' : 's') + ' to the Master List (sorted for you), then open next week.\n\n')
     : 'This will open next week to plan.\n\n';
   // Say the brain dump is safe BEFORE he clicks. The whole problem was a field going
   // blank with no explanation, which reads as deletion even though nothing is deleted.
@@ -3107,9 +3117,12 @@ function closeWeekAndStartFresh(){
 
   if (!S.masterItems) S.masterItems = [];
   var addDate = _ymd(new Date());
+  var carriedIds = [];
   unfinished.forEach(function(text){
+    var mid = 'mt_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    carriedIds.push(mid);
     S.masterItems.unshift({
-      id: 'mt_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+      id: mid,
       text: text, pillar: 'unsorted', sub: '', done: false,
       addDate: addDate, dueDate: '', recur: ''
     });
@@ -3172,6 +3185,72 @@ function closeWeekAndStartFresh(){
     }
   }
   alert(msg);
+
+  // Fire-and-forget: the week is already open and the items are already safe in the list.
+  classifyCarriedItems(carriedIds);
+}
+
+// ── Carry-forward classification ───────────────────────────────────
+// THE THIRD DOOR INTO THE MASTER LIST. Two others were fixed and this one wasn't:
+// horizon/hygiene (2026-07-15) re-buckets items that ALREADY have a category, and the
+// queued-batch stamp (2026-08-12) covers lines a skill pushes through the brain dump.
+// Week-close carry-forwards went in hard-coded pillar:'unsorted', dueDate:'' — so every
+// close added a fresh pile of grey undated rows (16 on 2026-08-15) that no other pass
+// would ever touch, because hygiene ages by dueDate and these have none.
+//
+// Runs AFTER the week has opened, on purpose: the items are in the list either way, so a
+// failed call, an offline close, or a dead API just leaves them Unsorted exactly as they
+// landed before this existed. Classification is an upgrade, never a dependency.
+async function classifyCarriedItems(ids){
+  if (!ids || !ids.length) return;
+  var GOODWOLF_SUBS = ['accounting','legal','production','marketing','sales','admin'];
+  var PILLARS = ['health','wealth','creative','goodwolf'];
+
+  var texts = ids.map(function(id){ var m = _masterById(id); return m ? m.text : null; });
+  if (texts.some(function(t){ return !t; })) return;
+
+  try {
+    var res = await fetch('/.netlify/functions/triage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: texts })
+    });
+    if (!res.ok) throw new Error('Function error: ' + res.status);
+    var out = await res.json();
+    // Strict 1:1 or nothing. This endpoint's other mode EXTRACTS items (it merges, splits
+    // and rewords freely), so a response of a different length means we're not looking at
+    // a per-line answer — and stamping by position would put the wrong category on the
+    // wrong task, which is worse than leaving the whole batch Unsorted.
+    if (!Array.isArray(out) || out.length !== ids.length) throw new Error('Not a 1:1 response');
+
+    var n = 0;
+    ids.forEach(function(id, i){
+      var m = _masterById(id);
+      // Skip anything he already fixed by hand while this was in flight — his dropdown
+      // click outranks the model.
+      if (!m || m.pillar !== 'unsorted') return;
+      var p = out[i] && out[i].pillar;
+      if (PILLARS.indexOf(p) < 0) return;
+      var s = (p === 'goodwolf' && out[i].sub) ? String(out[i].sub).toLowerCase() : '';
+      if (s && GOODWOLF_SUBS.indexOf(s) < 0) s = '';
+      m.pillar = p;
+      m.sub = s;
+      // Sub → catchall day, same mapping the triage modal uses, so a carried task lands
+      // on the right themed day instead of never surfacing at all.
+      if (!m.dueDate) m.dueDate = defaultDueDateForCategory(p, s);
+      n++;
+    });
+
+    if (n) {
+      save();
+      renderMasterList();
+      refreshSurfacing();
+    }
+  } catch(e) {
+    // Quiet on purpose — he's mid week-open and there is nothing for him to do about it.
+    // The items are in the Master List, just grey.
+    console.error('Carry-forward classify failed (items stay Unsorted):', e);
+  }
 }
 
 // ── Brain dump: same inbox, two places ─────────────────────────────
