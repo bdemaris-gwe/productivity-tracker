@@ -3540,6 +3540,7 @@ async function pushSync() {
           localStorage.setItem('idealWeek_v3', JSON.stringify(S));
           const ts2 = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
           setSyncBar('saved', ts2);
+          pushSync._lastPushed = S._lastSaved;
           try { init(); } catch(e) {}
           return; // adopted newer remote — nothing to push
         }
@@ -3551,6 +3552,7 @@ async function pushSync() {
     const ts = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
     const el = document.getElementById('sync-last-synced'); if (el) el.textContent = 'Last synced: '+ts;
     localStorage.setItem('idealWeek_last_sync', ts);
+    pushSync._lastPushed = S._lastSaved;
     setSyncBar('saved', ts);
   } catch(e) { console.warn('Sync push failed:',e); setSyncBar('error'); }
 }
@@ -3700,7 +3702,21 @@ function checkSyncState() {
       pullSync().then(function(ok){ if(ok){init();} });
     } else {
       pullSync().then(function(ok){ if(ok){init();} });
-      setInterval(pushSync, 60000);
+      // Sync loop. This used to call pushSync unconditionally every 60s, which spends
+// TWO JSONBin requests per tick (a freshness GET, then a PUT) even when nothing
+// changed — ~2,880/day per open tab against a 10,000/month quota, i.e. the whole
+// month gone in ~3.5 days. That is what exhausted the account on 2026-08-18.
+// Now: push immediately when local state is actually dirty, otherwise only poll
+// for a newer remote every 15 minutes, and never while the tab is backgrounded.
+var _lastRemoteCheck = 0;
+setInterval(function () {
+  if (document.hidden) return;                       // background tab costs nothing
+  if (S._lastSaved !== pushSync._lastPushed) { pushSync(); return; }  // dirty -> push
+  if (Date.now() - _lastRemoteCheck >= 900000) {     // clean -> slow remote poll
+    _lastRemoteCheck = Date.now();
+    pushSync();
+  }
+}, 60000);
     }
   }
   if (jbArchiveBin()&&jbArchiveKey()) { showArchiveConnected(); }
