@@ -543,6 +543,7 @@
     <div class="card">
       <div style="display:flex;align-items:center;margin-bottom:14px">
         <div class="card-title" style="margin-bottom:0;flex:1">Monthly reviews</div>
+        <button class="btn btn-sm" onclick="closeMonth()" style="font-size:11px;margin-right:6px">Close the month →</button>
         <button class="btn btn-sm" onclick="renderMonthlyReviews()" style="font-size:11px">Refresh</button>
       </div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:14px;font-style:italic">Tap a month to open its review. Four Clarity Canvas prompts per month.</div>
@@ -3720,6 +3721,110 @@ setInterval(function () {
     }
   }
   if (jbArchiveBin()&&jbArchiveKey()) { showArchiveConnected(); }
+}
+
+// ── CLOSE THE MONTH ──────────────────────────────────────────────────
+// Added 2026-08-30. The month rollover had no path in the app: the only
+// reset-shaped controls are resetDeckForQ3() and archiveQuarter(), and BOTH
+// blank S.monthlyReviews — closing a month with either deletes every monthly
+// review in the quarter, including the one you just wrote. This does the two
+// things a month close actually needs and nothing else.
+//
+// TWO GUARDS THAT MATTER:
+//  1. Refuses to close a month whose review isn't 4/4. Clearing the action plan
+//     destroys the record of what the month was for, so the review comes first.
+//  2. NEVER leaves actionItems empty. The init path (~2425) reseeds 8 hardcoded
+//     April defaults over any zero-length plan on the next load, so "cleared"
+//     has to mean 4 blank ROWS. Writing [] silently restores stale data.
+// True when actionItems is byte-for-byte the built-in sample plan — i.e. the init
+// path reseeded it over an empty plan and none of it is Brandon's.
+function isDefaultActionPlan() {
+  var cur = (S.actionItems || []).map(function (i) { return (i.text || '').trim(); }).join('|');
+  var def = getDefaultActionItems().map(function (i) { return (i.text || '').trim(); }).join('|');
+  return cur === def;
+}
+
+// ⛔ Four blank rows, never []. A zero-length plan is reseeded with the sample
+// items on the next load, which silently restores stale data.
+// `defer` lets closeMonth() do its own single save + sync — two pushSync calls for
+// one user action burns JSONbin requests, and the quota 403s look like a dead key.
+function blankActionPlan(defer) {
+  var now = Date.now();
+  S.actionItems = ['health', 'wealth', 'goodwolf', 'creative'].map(function (p, i) {
+    return { id: 'ap_' + now + '_' + i, text: '', pillar: p, done: false };
+  });
+  renderActionPlan();
+  if (defer) return;
+  save();
+  if (jbBin() && jbKey()) pushSync();
+}
+
+function closeMonth() {
+  var targets = S.monthlyTargets || [];
+  if (!targets.length) return alert('No monthly targets are set, so there is no month to close.');
+
+  // The month to close: the last one with a complete review that isn't already collapsed.
+  var qs = ['q0', 'q1', 'q2', 'q3'];
+  var answered = function (id) {
+    var r = (S.monthlyReviews || {})[id] || {};
+    return qs.filter(function (k) { return (r[k] || '').trim(); }).length;
+  };
+  var pick = null;
+  for (var i = targets.length - 1; i >= 0; i--) {
+    var r = (S.monthlyReviews || {})[targets[i].id] || {};
+    if (answered(targets[i].id) === 4 && r.open !== false) { pick = targets[i]; break; }
+  }
+  if (!pick) {
+    // Every month is closed — but the plan may still be showing the app's built-in
+    // sample items, which is what the init path reseeds over a zero-length plan.
+    // Offer the cleanup rather than a dead end.
+    if (isDefaultActionPlan()) {
+      if (confirm('Every month with a finished review is already closed.\n\n' +
+                  "But your 4-week action plan is showing the app's built-in sample items " +
+                  '(the Verratti deck, the Journey IFC party, "through May 26"). Those are ' +
+                  'placeholders, not your plan.\n\nReplace them with 4 blank rows?')) {
+        blankActionPlan();
+        alert('Replaced the sample items with 4 blank rows, one per pillar.');
+      }
+      return;
+    }
+    var lines = targets.map(function (t) {
+      var n = answered(t.id);
+      var done = ((S.monthlyReviews || {})[t.id] || {}).open === false;
+      return '  ' + t.month + ' — ' + n + '/4 answers' + (done ? ' (already closed)' : '');
+    }).join('\n');
+    return alert('Nothing to close.\n\nA month can be closed once its review has all four answers:\n\n' + lines +
+                 '\n\nWrite the review first — closing clears the 4-week action plan, and the review is the only record of what the month was for.');
+  }
+
+  var old = S.actionItems || [];
+  var oldDone = old.filter(function (x) { return x.done; }).length;
+  if (!confirm(
+    'Close ' + pick.month + '?\n\n' +
+    'This does two things:\n' +
+    '  • Collapses ' + pick.month + "'s review section. The text is KEPT.\n" +
+    '  • Replaces the 4-week action plan (' + old.length + ' items, ' + oldDone + ' done)\n' +
+    '    with 4 blank rows, one per pillar. The old plan is saved to this\n' +
+    "    browser's history first.\n\n" +
+    'It does NOT touch: your review text, quarterly objectives, monthly\n' +
+    'targets, master task list, weekly goals, weekly history, or the archive.'
+  )) return;
+
+  // Stash the outgoing plan so a close is never a one-way door.
+  try {
+    var hist = JSON.parse(localStorage.getItem('idealWeek_actionplan_history') || '[]');
+    hist.unshift({ month: pick.month, id: pick.id, closedOn: new Date().toISOString().split('T')[0], items: old });
+    localStorage.setItem('idealWeek_actionplan_history', JSON.stringify(hist.slice(0, 24)));
+  } catch (e) { /* history is a convenience, never a blocker */ }
+
+  if (!S.monthlyReviews) S.monthlyReviews = {};
+  S.monthlyReviews[pick.id] = Object.assign({}, S.monthlyReviews[pick.id] || {}, { open: false });
+
+  blankActionPlan(true);   // ⛔ blank rows, never [] — see the header note
+  save();
+  renderMonthlyTargets(); renderMonthlyReviews();
+  if (jbBin() && jbKey()) pushSync();
+  alert(pick.month + ' closed.\n\nCleared ' + old.length + ' action items and left 4 blank rows for the new month.\nYour ' + pick.month + ' review is intact — tap the month to reopen it.');
 }
 
 function renderMonthlyReviews() {
