@@ -242,7 +242,7 @@
     <div>
       <div class="app-title">Productivity Tracker</div>
       <div class="week-label" id="week-label">Week of Jun 1 – Jun 6</div>
-      <div class="week-meta" id="week-meta">Week 10 of 13 — Q2 2026</div>
+      <div class="week-meta" id="week-meta">Week 3 of 13 — Q4 2026</div>
       <div id="countdown-bar" style="display:none"></div>
     </div>
     <div style="text-align:right;padding-top:4px">
@@ -488,7 +488,7 @@
         <div class="h-icon">◈</div>
         <div style="flex:1">
           <div style="display:flex;align-items:center;cursor:pointer" onclick="toggleSection(&#39;q-objs-panel&#39;,&#39;qobj-chevron&#39;)">
-            <div class="h-label">Quarterly objectives <span class="h-badge h-badge-q">Q2 2026</span></div>
+            <div class="h-label">Quarterly objectives <span class="h-badge h-badge-q" id="deck-q-badge">Q3 2026</span></div>
             <span id="qobj-chevron" style="font-size:11px;color:var(--muted);margin-left:auto">▼</span>
           </div>
           <div class="h-sub">Where real planning lives. 90% is outside your control.</div>
@@ -556,7 +556,7 @@
         <span id="qr-chevron" style="font-size:11px;color:var(--muted)">▼</span>
       </div>
       <div id="qr-body" style="display:none;margin-top:16px">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;font-style:italic">Finish your Q2 close-out on the new questions. Wherever you already wrote something, it shows up in the gold box under the question — read it, keep it, or build on it. Autosaves as you go, and none of your original notes are touched.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;font-style:italic">Finish your <span class="deck-q-short">Q3</span> close-out on the new questions. Wherever you already wrote something, it shows up in the gold box under the question — read it, keep it, or build on it. Autosaves as you go, and none of your original notes are touched.</div>
 
       <!-- VISION -->
       <div class="qr-movement">Vision — who I'm becoming</div>
@@ -648,7 +648,7 @@
       </div>
 
       <div style="display:flex;justify-content:flex-end;margin-top:18px">
-        <button class="btn btn-accent" onclick="archiveQuarter()">Archive Q2 &amp; open Q3 →</button>
+        <button class="btn btn-accent" onclick="archiveQuarter()" id="archive-q-btn">Archive Q3 &amp; open Q4 →</button>
       </div>
       </div>
     </div>
@@ -2398,7 +2398,7 @@ function init() {
   // The top header always shows the calendar's current week (not the view week).
   var wlEl = document.getElementById('week-label'); if(wlEl) wlEl.textContent = getWeekLabelForKey(S.currentWeekKey);
   var awlEl = document.getElementById('active-week-label'); if(awlEl) awlEl.textContent = getWeekLabelForKey(S.currentWeekKey);
-  var wmEl = document.getElementById('week-meta'); if(wmEl) wmEl.textContent = 'Week ' + wn + ' of 13 — Q2 2026';
+  var wmEl = document.getElementById('week-meta'); if(wmEl) wmEl.textContent = 'Week ' + wn + ' of 13 — Q' + (Math.floor(new Date().getMonth()/3)+1) + ' ' + new Date().getFullYear();
   var wnum = document.getElementById('m-week-num'); if(wnum) wnum.textContent = wn;
   var qpct = document.getElementById('q-pct'); if(qpct) qpct.textContent = Math.round(wn/13*100) + '%';
   var qbar = document.getElementById('quarter-bar'); if(qbar) qbar.style.width = (wn/13*100) + '%';
@@ -3881,7 +3881,7 @@ function renderMonthlyReviews() {
 }
 
 var Q2_REF_LABELS = {
-  _qobjs:'Your Q2 objectives', victory:'Victory', metrics:'Metrics', leverage:'Highest leverage',
+  _qobjs:'Your quarter objectives', victory:'Victory', metrics:'Metrics', leverage:'Highest leverage',
   energyCreators:'Energy created', challenge:'The challenge', obstacles:'Obstacles',
   energyDrainers:'Energy drained', scanHealth:'Health scan', scanWealth:'Wealth scan',
   scanBusiness:'Business scan', scanCreative:'Creativity scan', startList:'Start',
@@ -3889,8 +3889,27 @@ var Q2_REF_LABELS = {
   mindset:'Winning mindset', resources:'Resources & people'
 };
 function q2esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// The quarter the planning deck holds, read from its monthly targets — so the
+// review closes THAT quarter even when it runs a few weeks into the next one.
+var MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function deckQuarter() {
+  var now = new Date();
+  var m0 = (S.monthlyTargets && S.monthlyTargets[0]) ? MONTH_NAMES.indexOf(S.monthlyTargets[0].month) : -1;
+  var qi = m0 >= 0 ? Math.floor(m0/3) : Math.floor(now.getMonth()/3);
+  var year = now.getFullYear() - (qi > Math.floor(now.getMonth()/3) ? 1 : 0);
+  var ni = (qi + 1) % 4, nyear = year + (qi === 3 ? 1 : 0);
+  return { short:'Q'+(qi+1), label:'Q'+(qi+1)+' '+year, nextShort:'Q'+(ni+1), nextLabel:'Q'+(ni+1)+' '+nyear,
+           nextMonths:[0,1,2].map(function(i){ return MONTH_NAMES[ni*3+i]; }) };
+}
+function applyQuarterLabels() {
+  var dq = deckQuarter();
+  var b = document.getElementById('deck-q-badge'); if (b) b.textContent = dq.label;
+  document.querySelectorAll('.deck-q-short').forEach(function(e){ e.textContent = dq.short; });
+  var btn = document.getElementById('archive-q-btn'); if (btn) btn.innerHTML = 'Archive '+dq.short+' &amp; open '+dq.nextShort+' →';
+}
 function renderQ2Review() {
   if (!S.qReview2) S.qReview2 = {};
+  applyQuarterLabels();
   var fields = ['vision','intentions','scorecard','worked','cost','ratingHealth','lineHealth',
     'ratingWealth','lineWealth','ratingGoodwolf','lineGoodwolf','ratingCreative','lineCreative',
     'start','stop','continue','goalHealth','goalWealth','goalCreative','theme','mantras','support'];
@@ -3905,7 +3924,7 @@ function renderQ2Review() {
       if (k === '_qobjs') { val = (S.qObjs||[]).filter(function(o){return o&&String(o).trim();}).map(function(o,i){return (i+1)+'. '+o;}).join('\n'); }
       else { val = qr[k] || ''; }
       if (val && String(val).trim()) {
-        parts.push('<span class="q2ref-label">From your Q2 notes · '+(Q2_REF_LABELS[k]||k)+'</span>'+q2esc(String(val).trim()));
+        parts.push('<span class="q2ref-label">From your '+deckQuarter().short+' notes · '+(Q2_REF_LABELS[k]||k)+'</span>'+q2esc(String(val).trim()));
       }
     });
     if (parts.length) { box.innerHTML = parts.join('\n\n'); box.style.display='block'; }
@@ -3930,10 +3949,11 @@ function resetDeckForQ3() {
 }
 
 function archiveQuarter() {
-  if (!confirm('Archive Q2 2026 and open Q3? Your objectives, targets, actions and review will be saved to the archive.')) return;
+  var dq = deckQuarter();
+  if (!confirm('Archive '+dq.label+' and open '+dq.nextShort+'? Your objectives, targets, actions and review will be saved to the archive.')) return;
   if (!S.archive) S.archive = [];
   var snapshot = {
-    quarter: 'Q2 2026',
+    quarter: dq.label,
     date: new Date().toISOString().split('T')[0],
     yearGoal: S.yearGoal || '',
     objectives: JSON.parse(JSON.stringify(S.qObjs || [])),
@@ -3947,20 +3967,16 @@ function archiveQuarter() {
   S.archive.unshift(snapshot);
   // Also push to dedicated archive bin if connected
   pushToArchive({ type: 'quarter', data: snapshot });
-  // Carry the review's vision forward into the persistent Vision Statement, then reset for Q3
+  // Carry the review's vision forward into the persistent Vision Statement, then reset for the next quarter
   if (S.qReview2 && S.qReview2.vision && S.qReview2.vision.trim()) S.yearGoal = S.qReview2.vision.trim();
   S.qObjs = [];
-  S.monthlyTargets = [
-    { month: 'July', id: 'mt_jul', pillars: { health:[''], wealth:[''], goodwolf:[''], creative:[''] }, extra:[] },
-    { month: 'August', id: 'mt_aug', pillars: { health:[''], wealth:[''], goodwolf:[''], creative:[''] }, extra:[] },
-    { month: 'September', id: 'mt_sep', pillars: { health:[''], wealth:[''], goodwolf:[''], creative:[''] }, extra:[] }
-  ];
+  S.monthlyTargets = dq.nextMonths.map(function(m){ return { month: m, id: 'mt_'+m.slice(0,3).toLowerCase(), pillars: { health:[''], wealth:[''], goodwolf:[''], creative:[''] }, extra:[] }; });
   S.monthlyReviews = {};
   S.actionItems = [];
   S.quarterlyReview = {};
   S.qReview2 = {};
   save();
-  pushSync().then(function() { alert('Q2 archived. Framework reset for Q3. Your archive is saved to JSONBin.'); });
+  pushSync().then(function() { alert(dq.label+' archived. Framework reset for '+dq.nextShort+'. Your archive is saved to JSONBin.'); });
   renderQObjs(); renderMonthlyTargets(); renderActionPlan(); renderMonthlyReviews(); renderArchive(); renderQ2Review();
 }
 
