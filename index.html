@@ -412,10 +412,10 @@
       <input type="text" id="master-add-input" placeholder="Task description... (press Enter to add)" onkeydown="if(event.key===&#39;Enter&#39;)addMasterItem()" style="margin-bottom:10px">
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
         <select id="master-add-pillar" class="master-select" onchange="toggleAddSubCat(this.value)">
-          <option value="goodwolf">Good Wolf</option>
+          <option value="creative">Creativity</option>
           <option value="health">Health</option>
           <option value="wealth">Wealth</option>
-          <option value="creative">Creativity</option>
+          <option value="goodwolf" selected>Good Wolf</option>
         </select>
         <select id="master-add-sub" class="master-select" onchange="document.getElementById(&#39;master-add-sub-custom&#39;).style.display=this.value===&#39;custom&#39;?&#39;block&#39;:&#39;none&#39;">
           <option value="">Sub-category...</option>
@@ -595,6 +595,10 @@
       <!-- II · PRESENT ASSESSMENT -->
       <div class="qr-movement">II · Where things stand right now — rate 1–5, one honest line</div>
       <div class="scan-row">
+        <div class="scan-meta"><div class="scan-name">Creative</div><input type="number" min="1" max="5" class="scan-score" id="q2-ratingCreative" placeholder="–" oninput="S.qReview2.ratingCreative=this.value;save()"></div>
+        <div style="flex:1"><textarea class="scan-note" rows="3" id="q2-lineCreative" placeholder="BWD Artist, Be Here Now, songwriting — output, momentum, what shipped..." oninput="S.qReview2.lineCreative=this.value;save()"></textarea><div class="q2ref" data-ref="scanCreative"></div></div>
+      </div>
+      <div class="scan-row">
         <div class="scan-meta"><div class="scan-name">Health</div><input type="number" min="1" max="5" class="scan-score" id="q2-ratingHealth" placeholder="–" oninput="S.qReview2.ratingHealth=this.value;save()"></div>
         <div style="flex:1"><textarea class="scan-note" rows="3" id="q2-lineHealth" placeholder="Body, energy, sleep, recovery, training — the honest read..." oninput="S.qReview2.lineHealth=this.value;save()"></textarea><div class="q2ref" data-ref="scanHealth"></div></div>
       </div>
@@ -605,10 +609,6 @@
       <div class="scan-row">
         <div class="scan-meta"><div class="scan-name" style="color:var(--accent2)">Good Wolf</div><input type="number" min="1" max="5" class="scan-score" id="q2-ratingGoodwolf" placeholder="–" oninput="S.qReview2.ratingGoodwolf=this.value;save()"></div>
         <div style="flex:1"><div style="font-size:11px;color:var(--muted);font-style:italic;margin-bottom:5px">The engine under Wealth — its own read: revenue, pipeline, deals, team, systems.</div><textarea class="scan-note" rows="3" id="q2-lineGoodwolf" placeholder="Good Wolf on its own terms — what's true about the business right now..." oninput="S.qReview2.lineGoodwolf=this.value;save()"></textarea><div class="q2ref" data-ref="scanBusiness"></div></div>
-      </div>
-      <div class="scan-row">
-        <div class="scan-meta"><div class="scan-name">Creative</div><input type="number" min="1" max="5" class="scan-score" id="q2-ratingCreative" placeholder="–" oninput="S.qReview2.ratingCreative=this.value;save()"></div>
-        <div style="flex:1"><textarea class="scan-note" rows="3" id="q2-lineCreative" placeholder="BWD Artist, Be Here Now, songwriting — output, momentum, what shipped..." oninput="S.qReview2.lineCreative=this.value;save()"></textarea><div class="q2ref" data-ref="scanCreative"></div></div>
       </div>
       <div class="reflection-block" style="margin-top:16px;margin-bottom:0">
         <div class="reflection-label">Start / Stop / Continue</div>
@@ -623,9 +623,9 @@
       <div class="reflection-block">
         <div class="reflection-label">The next 90 days — one clear goal each</div>
         <div class="reflection-prompt">One line per pillar. These become the intentions you'll grade at the top of next quarter.</div>
+        <div class="q2-pillar-goal"><span class="pg-name">Creative</span><textarea id="q2-goalCreative" rows="2" placeholder="One goal for Creative..." oninput="S.qReview2.goalCreative=this.value;save()"></textarea></div>
         <div class="q2-pillar-goal"><span class="pg-name">Health</span><textarea id="q2-goalHealth" rows="2" placeholder="One goal for Health..." oninput="S.qReview2.goalHealth=this.value;save()"></textarea></div>
-        <div class="q2-pillar-goal"><span class="pg-name">Wealth</span><textarea id="q2-goalWealth" rows="2" placeholder="One goal for Wealth..." oninput="S.qReview2.goalWealth=this.value;save()"></textarea></div>
-        <div class="q2-pillar-goal" style="margin-bottom:0"><span class="pg-name">Creative</span><textarea id="q2-goalCreative" rows="2" placeholder="One goal for Creative..." oninput="S.qReview2.goalCreative=this.value;save()"></textarea></div>
+        <div class="q2-pillar-goal" style="margin-bottom:0"><span class="pg-name">Wealth</span><textarea id="q2-goalWealth" rows="2" placeholder="One goal for Wealth..." oninput="S.qReview2.goalWealth=this.value;save()"></textarea></div>
         <div class="q2ref" data-ref="nextObjective"></div>
       </div>
       <div class="reflection-block">
@@ -1729,10 +1729,10 @@ function makeMasterRow(item) {
 }
 
 const MT_PILLARS = [
+  { key:'creative', label:'Creativity', color:'#5a4a8a', bg:'#f0ecf8', border:'#c8b8e8' },
   { key:'health',   label:'Health',     color:'#2a7a4a', bg:'#e8f5ee', border:'#b8dfc8' },
   { key:'wealth',   label:'Wealth',     color:'#9a5f1a', bg:'#fdf3e3', border:'#f0d9a8' },
-  { key:'goodwolf', label:'Good Wolf',  color:'#2a5a9a', bg:'#e8f0fa', border:'#b0c8ec' },
-  { key:'creative', label:'Creativity', color:'#5a4a8a', bg:'#f0ecf8', border:'#c8b8e8' }
+  { key:'goodwolf', label:'Good Wolf',  color:'#2a5a9a', bg:'#e8f0fa', border:'#b0c8ec' }
 ];
 
 function renderMonthlyTargets() {
@@ -1869,7 +1869,7 @@ function renderActionPlan() {
     const color = AP_PILLAR_COLORS[item.pillar] || '#888';
     const row = document.createElement('div');
     row.className = 'ap-row';
-    const pillarOpts = ['goodwolf','health','wealth','creative'].map(p =>
+    const pillarOpts = ['creative','health','wealth','goodwolf'].map(p =>
       '<option value="'+p+'"'+(item.pillar===p?' selected':'')+'>'+
       (p==='goodwolf'?'Good Wolf':p.charAt(0).toUpperCase()+p.slice(1))+'</option>'
     ).join('');
@@ -1901,12 +1901,12 @@ function toggleSection(panelId, chevronId) {
 
 // ── WEEKLY GOALS — PILLAR + GOOD WOLF SUBCATEGORY SYSTEM ──────────
 const WEEK_PILLARS = [
+  { key: 'creative', label: 'Creativity', color: '#5a4a8a', bg: '#f0ecf8', border: '#c8b8e8',
+    hint: 'Artist career · music · Be Here Now · songwriting' },
   { key: 'health',   label: 'Health',     color: '#2a7a4a', bg: '#e8f5ee', border: '#b8dfc8',
     hint: 'Training · nutrition · recovery · body comp' },
   { key: 'wealth',   label: 'Wealth',     color: '#9a5f1a', bg: '#fdf3e3', border: '#f0d9a8',
     hint: 'Personal income · financial targets · non-GWE' },
-  { key: 'creative', label: 'Creativity', color: '#5a4a8a', bg: '#f0ecf8', border: '#c8b8e8',
-    hint: 'Artist career · music · Be Here Now · songwriting' },
   { key: 'goodwolf', label: 'Good Wolf',  color: '#2a5a9a', bg: '#e8f0fa', border: '#b0c8ec',
     hint: 'GWE business goals',
     subs: [
@@ -2253,7 +2253,7 @@ function renderTriageList() {
     // Pillar + sub
     var row2 = document.createElement('div'); row2.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px';
     var pSel = document.createElement('select'); pSel.className='master-select'; pSel.style.fontSize='12px';
-    ['goodwolf','health','wealth','creative'].forEach(function(p){
+    ['creative','health','wealth','goodwolf'].forEach(function(p){
       var o=document.createElement('option'); o.value=p;
       o.textContent=p==='goodwolf'?'Good Wolf':p.charAt(0).toUpperCase()+p.slice(1);
       if(item.pillar===p) o.selected=true; pSel.appendChild(o);
@@ -3750,7 +3750,7 @@ function isDefaultActionPlan() {
 // one user action burns JSONbin requests, and the quota 403s look like a dead key.
 function blankActionPlan(defer) {
   var now = Date.now();
-  S.actionItems = ['health', 'wealth', 'goodwolf', 'creative'].map(function (p, i) {
+  S.actionItems = ['creative', 'health', 'wealth', 'goodwolf'].map(function (p, i) {
     return { id: 'ap_' + now + '_' + i, text: '', pillar: p, done: false };
   });
   renderActionPlan();
@@ -4041,18 +4041,18 @@ function renderArchive() {
 
       add(body, movement('II · Where things stand'));
       var scan=function(name, rating, line){ var v=((rating!=null&&String(rating).trim())?('['+rating+'/5] '):'')+(line||''); return field(name, (String(rating||'').trim()||String(line||'').trim())?v:''); };
+      add(body, scan('Creative', qr2.ratingCreative, qr2.lineCreative));
       add(body, scan('Health', qr2.ratingHealth, qr2.lineHealth));
       add(body, scan('Wealth', qr2.ratingWealth, qr2.lineWealth));
       add(body, scan('Good Wolf', qr2.ratingGoodwolf, qr2.lineGoodwolf));
-      add(body, scan('Creative', qr2.ratingCreative, qr2.lineCreative));
       add(body, field('Start', qr2.start));
       add(body, field('Stop', qr2.stop));
       add(body, field('Continue', qr2.continue));
 
       add(body, movement('III · Looking forward'));
+      add(body, field('Goal — Creative', qr2.goalCreative));
       add(body, field('Goal — Health', qr2.goalHealth));
       add(body, field('Goal — Wealth', qr2.goalWealth));
-      add(body, field('Goal — Creative', qr2.goalCreative));
       add(body, field('Theme', qr2.theme));
       add(body, field('Mantras', qr2.mantras));
       add(body, field('Support', qr2.support));
@@ -4069,7 +4069,7 @@ function renderArchive() {
       var mtNode=document.createElement('div'); var anyMt=false;
       snap.monthlyTargets.forEach(function(mt){
         var items=[];
-        if(mt.pillars){ ['health','wealth','goodwolf','creative'].forEach(function(p){ (mt.pillars[p]||[]).forEach(function(t){ if(String(t||'').trim()) items.push(t.trim()); }); }); }
+        if(mt.pillars){ ['creative','health','wealth','goodwolf'].forEach(function(p){ (mt.pillars[p]||[]).forEach(function(t){ if(String(t||'').trim()) items.push(t.trim()); }); }); }
         if(mt.extra){ mt.extra.forEach(function(t){ if(String(t||'').trim()) items.push(t.trim()); }); }
         if(items.length){ anyMt=true; add(mtNode, field(mt.month, items.map(function(x){return '- '+x;}).join('\n'))); }
       });
