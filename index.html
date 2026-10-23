@@ -2744,11 +2744,12 @@ function renderUrgentList(key) {
     }
     // A window onto the Master Task List, not a copy of it — say so, and show the
     // real deadline so a task that has been sliding is visibly sliding.
-    if (item.masterId) {
-      const m = _masterById(item.masterId);
+    if (item.masterId || item.fromMaster) {
+      const m = item.masterId ? _masterById(item.masterId) : item.fromMaster;
       const tag = document.createElement('span');
       tag.textContent = (m && m.dueDate) ? ('due ' + fmtDate(m.dueDate)) : 'task list';
-      tag.title = 'From the Master Task List — checking it off here completes it there';
+      tag.title = item.masterId ? 'Recurring task from the Master Task List — checking it off here completes it there'
+        : 'Moved here from the Master Task List';
       tag.style.cssText = 'flex:none;font-size:10px;font-family:var(--mono);color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:1px 5px';
       if (m && isOverdue(m.dueDate) && !item.done) { tag.style.color = 'var(--red)'; tag.style.borderColor = 'var(--red)'; }
       row.appendChild(tag);
@@ -2757,7 +2758,7 @@ function renderUrgentList(key) {
     const del = document.createElement('span');
     del.style.cssText = 'font-size:16px;color:var(--border2);cursor:pointer;padding:0 4px';
     del.innerHTML = '&times;';
-    del.title = item.masterId ? 'Take off this day (stays in the Master Task List)' : 'Remove';
+    del.title = (item.masterId || item.fromMaster) ? 'Take off this day (back to the Master Task List)' : 'Remove';
     del.onclick = (function(idx){ return function(){ deleteUrgentItem(key, idx); }; })(i);
     row.appendChild(del);
     el.appendChild(row);
@@ -2806,6 +2807,7 @@ function deleteUrgentItem(key, i) {
     if (!C.surfaceDismissed) C.surfaceDismissed = {};
     C.surfaceDismissed[item.masterId] = true;
   }
+  if (item.fromMaster) _restoreToMaster(item);
   DU[storeKey].splice(i, 1);
   save();
   renderUrgentList(key);
@@ -2819,12 +2821,13 @@ function sendUrgentToTaskList(key) {
   const openRows = items.filter(i => !i.done);
   // Rows that came FROM the master list are already there — sending them would mint a
   // duplicate. They just come off the day; the original keeps its deadline.
-  const linked = openRows.filter(i => i.masterId);
-  const unchecked = openRows.filter(i => !i.masterId);
+  const linked = openRows.filter(i => i.masterId || i.fromMaster);
+  const unchecked = openRows.filter(i => !i.masterId && !i.fromMaster);
+  openRows.forEach(i => { if (i.fromMaster) _restoreToMaster(i); });
   if (!openRows.length) { alert('No unchecked tasks to send.'); return; }
   if (linked.length) {
     if (!C.surfaceDismissed) C.surfaceDismissed = {};
-    linked.forEach(i => { C.surfaceDismissed[i.masterId] = true; });
+    linked.forEach(i => { if (i.masterId) C.surfaceDismissed[i.masterId] = true; });
   }
   if (!S.masterItems) S.masterItems = [];
   const now = new Date();
@@ -2903,10 +2906,10 @@ function collectUnfinished(C){
   var DU = C.dayUrgent || {};
   Object.keys(DU).forEach(function(k){
     (DU[k] || []).forEach(function(u){
-      // Surfaced master items are INCLUDED (Brandon, 2026-10-23): every unfinished task
-      // comes back through the import so he sets its date. No duplicate results —
-      // approveAllTriage replaces the open master copy with the same text.
-      if (u && u.text && u.text.trim() && !u.done) take(u.text.trim());
+      // Every unfinished task comes back through triage so he sets its date (2026-10-23).
+      // One-off tasks were MOVED here (no master copy left to duplicate). Linked rows are
+      // recurring tasks only — they stay on the Master List and roll forward themselves.
+      if (u && !u.masterId && u.text && u.text.trim() && !u.done) take(u.text.trim());
     });
   });
   return out;
@@ -2935,16 +2938,18 @@ function _carryDayKeys(weekKey, idx){
 // Append to a day's urgent list, skipping anything already queued there. A surfaced
 // master item is matched by its link first — the wording can be edited in the Master
 // List, so text alone is not a reliable identity for those rows.
-function _carryPush(dest, text, masterId){
+function _carryPush(dest, text, masterId, fromMaster){
   var t = (text || '').trim();
   if (!t) return 0;
   for (var i = 0; i < dest.length; i++) {
     if (!dest[i]) continue;
     if (masterId && dest[i].masterId === masterId) return 0;
+    if (fromMaster && dest[i].fromMaster && dest[i].fromMaster.id === fromMaster.id) return 0;
     if ((dest[i].text || '').trim() === t) return 0;
   }
   var row = { text: t, done: false, carried: true };
   if (masterId) row.masterId = masterId;
+  if (fromMaster) row.fromMaster = fromMaster;
   dest.push(row);
   return 1;
 }
@@ -2977,7 +2982,7 @@ function runDailyCarryForward(){
         var keep = [];
         for (var u = 0; u < src.length; u++) {
           var it = src[u];
-          if (it && (it.text || '').trim() && !it.done) moved += _carryPush(dest, it.text, it.masterId);
+          if (it && (it.text || '').trim() && !it.done) moved += _carryPush(dest, it.text, it.masterId, it.fromMaster);
           else if (it) keep.push(it);
         }
         C.dayUrgent[keys[k]] = keep;
@@ -2993,6 +2998,9 @@ function runDailyCarryForward(){
 // urgent list and is hidden from the Master Task List, so dated work arrives where
 // Brandon actually looks instead of waiting to be discovered.
 //
+// ⛔ UPDATED 2026-10-23: one-off tasks now MOVE onto their day (`fromMaster`) and leave
+// the Master List — Brandon's rule, after the window model produced duplicates. Only
+// recurring tasks still use the window model described below.
 // The day row is a WINDOW onto the master item, never a copy: it carries `masterId`,
 // and the master item stays the single source of truth for text and done-state. That
 // is what makes the round trip safe — check it off on the day and it completes in the
@@ -3000,6 +3008,21 @@ function runDailyCarryForward(){
 // next day; close the week and the link simply ends, so the item reappears in the
 // Master List for the hygiene pass to re-bucket. Nothing is ever duplicated, because
 // nothing is ever copied.
+// What a moved task remembers about its Master List life, so taking it off a day
+// can put it back exactly as it was.
+function _masterSnapshot(m){
+  return { id: m.id, pillar: m.pillar || 'goodwolf', sub: m.sub || '', addDate: m.addDate || '', dueDate: m.dueDate || '' };
+}
+function _restoreToMaster(item){
+  var fm = item.fromMaster; if (!fm) return;
+  if (!S.masterItems) S.masterItems = [];
+  if (_masterById(fm.id)) return;
+  S.masterItems.unshift({ id: fm.id, text: item.text, pillar: fm.pillar, sub: fm.sub, done: false,
+    addDate: fm.addDate, dueDate: fm.dueDate, recur: '' });
+  var C = cw(); if (!C.surfaceDismissed) C.surfaceDismissed = {};
+  C.surfaceDismissed[fm.id] = true;   // he took it off this week's days — don't re-surface it
+}
+
 function _masterById(id){
   if (!id || !S.masterItems) return null;
   for (var i = 0; i < S.masterItems.length; i++) if (S.masterItems[i].id === id) return S.masterItems[i];
@@ -3040,7 +3063,7 @@ function _dateForWeekdayInWeek(dayKey, weekKey){
 function runMasterDueSurfacing(){
   if (!S.masterItems) return 0;
   if (S.currentWeekKey !== getCurrentMondayKey()) return 0;   // never mutate a week being reviewed
-  var C = cw(), added = 0, changed = false;
+  var C = cw(), added = 0, changed = false, moveOut = {};
   if (!C.dayUrgent) C.dayUrgent = {};
   if (!C.surfaceDismissed) C.surfaceDismissed = {};
 
@@ -3055,6 +3078,11 @@ function runMasterDueSurfacing(){
       if (!r || !r.masterId) { if (r) keep.push(r); continue; }
       var m = _masterById(r.masterId);
       if (!m) { changed = true; continue; }
+      // Legacy window onto a one-off task: finish the move (Brandon's rule, 2026-10-23).
+      if (!m.recur && !m.done) {
+        r.text = m.text; r.fromMaster = _masterSnapshot(m); delete r.masterId;
+        moveOut[m.id] = 1; changed = true; keep.push(r); continue;
+      }
       if (r.text !== m.text) { r.text = m.text; changed = true; }
       if (!!r.done !== !!m.done) { r.done = !!m.done; changed = true; }
       keep.push(r);
@@ -3070,10 +3098,18 @@ function runMasterDueSurfacing(){
     if (idx < 0) return;
     var dayKey = CARRY_DAYS[idx];
     if (!Array.isArray(C.dayUrgent[dayKey])) C.dayUrgent[dayKey] = [];
-    C.dayUrgent[dayKey].push({ text: it.text, done: false, masterId: it.id });
+    // ⛔ A one-off task MOVES onto its day and leaves the Master List (Brandon, 2026-10-23):
+    // it can then never come back as a second copy. Recurring tasks stay a linked window
+    // so checking one off still schedules its next occurrence.
+    if (it.recur) C.dayUrgent[dayKey].push({ text: it.text, done: false, masterId: it.id });
+    else { C.dayUrgent[dayKey].push({ text: it.text, done: false, fromMaster: _masterSnapshot(it) }); moveOut[it.id] = 1; }
     seen[it.id] = true;
     added++;
   });
+  if (Object.keys(moveOut).length) {
+    S.masterItems = S.masterItems.filter(function(m){ return !moveOut[m.id]; });
+    changed = true;
+  }
 
   if (added || changed) save();
   return added;
