@@ -3105,7 +3105,7 @@ function closeWeekAndStartFresh(){
   var C = cw();
   var unfinished = collectUnfinished(C);
   var lead = unfinished.length
-    ? ('This will carry ' + unfinished.length + ' unfinished item' + (unfinished.length === 1 ? '' : 's') + ' to the Master List (sorted for you), then open next week.\n\n')
+    ? ('This will carry ' + unfinished.length + ' unfinished item' + (unfinished.length === 1 ? '' : 's') + ' into next week\'s brain dump for you to re-prioritize, then open next week.\n\n')
     : 'This will open next week to plan.\n\n';
   // Say the brain dump is safe BEFORE he clicks. The whole problem was a field going
   // blank with no explanation, which reads as deletion even though nothing is deleted.
@@ -3116,18 +3116,10 @@ function closeWeekAndStartFresh(){
   }
   if (!confirm(lead + 'Close this week and start fresh?')) return;
 
-  if (!S.masterItems) S.masterItems = [];
-  var addDate = _ymd(new Date());
-  var carriedIds = [];
-  unfinished.forEach(function(text){
-    var mid = 'mt_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    carriedIds.push(mid);
-    S.masterItems.unshift({
-      id: mid,
-      text: text, pillar: 'unsorted', sub: '', done: false,
-      addDate: addDate, dueDate: '', recur: ''
-    });
-  });
+  // ⛔ Unfinished items go to the BRAIN DUMP, not the Master List (Brandon, 2026-10-23).
+  // Sweeping them onto the list made duplicates and let the classifier assign priorities
+  // that were the model's, not his. He re-prioritizes them himself when he triages the dump.
+  // (Surfaced master items are already skipped by collectUnfinished — they stay put.)
 
   // Tidy the master list so overdue tasks never compound into a red pile.
   var hyg = runWeeklyHygiene();
@@ -3163,10 +3155,28 @@ function closeWeekAndStartFresh(){
     S.weeks[nextKey].brainDump = out.join('\n').replace(/^\n+/, '');
   }
 
+  // Unfinished tasks land in the same dump, deduped against what is already there.
+  var swept = 0;
+  if (unfinished.length) {
+    var dump = (typeof S.weeks[nextKey].brainDump === 'string') ? S.weeks[nextKey].brainDump : '';
+    var have = {}, lines = dump ? dump.split('\n') : [];
+    lines.forEach(function(l){ var k = _dumpKey(l); if (k) have[k] = 1; });
+    unfinished.forEach(function(t){
+      var k = _dumpKey(t);
+      if (!k || have[k]) return;
+      have[k] = 1; lines.push(t); swept++;
+    });
+    S.weeks[nextKey].brainDump = lines.join('\n').replace(/^\n+/, '');
+  }
+
   save();
   init();
 
   var msg = 'Fresh week started: ' + (getWeekLabelForKey(nextKey) || nextKey) + '. Time to plan.';
+  if (swept) {
+    msg += '\n\n📥 ' + swept + ' unfinished task' + (swept === 1 ? '' : 's')
+      + ' moved into the brain dump. Triage them to set their priority.';
+  }
   if (carriedCount) {
     msg += '\n\n🧠 ' + carriedCount + ' un-triaged brain dump line'
       + (carriedCount === 1 ? '' : 's') + ' carried forward. Triage clears them, not the week.';
@@ -3186,9 +3196,6 @@ function closeWeekAndStartFresh(){
     }
   }
   alert(msg);
-
-  // Fire-and-forget: the week is already open and the items are already safe in the list.
-  classifyCarriedItems(carriedIds);
 }
 
 // ── Carry-forward classification ───────────────────────────────────
