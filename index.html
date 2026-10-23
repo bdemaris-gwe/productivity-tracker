@@ -2404,6 +2404,7 @@ function init() {
   runMasterDueSurfacing();
   runDailyCarryForward();
   if (reconcileDumpWithMaster()) save();
+  applyQueuedRemovals();
   const wn = getWeekNum();
   // The top header always shows the calendar's current week (not the view week).
   var wlEl = document.getElementById('week-label'); if(wlEl) wlEl.textContent = getWeekLabelForKey(S.currentWeekKey);
@@ -3521,6 +3522,28 @@ function reconcileDumpWithMaster(){
   return n0 - S.masterItems.length;
 }
 
+// Removals queued from outside the app (Claude, via the inbox bin's `remove` list of
+// master ids). Applied in the browser on every load — the side that always wins sync —
+// so a cleanup never needs him to paste code. Idempotent: ids are unique, so the list
+// can stay in the bin and re-applying it after a sync adopt is harmless.
+function applyQueuedRemovals(){
+  var INBOX_BIN = '6a57e63df5f4af5e29945cf9';
+  if (!jbKey() || !S.masterItems) return Promise.resolve(0);
+  return fetch('https://api.jsonbin.io/v3/b/' + INBOX_BIN + '/latest', { headers: { 'X-Master-Key': jbKey(), 'X-Bin-Meta': 'false' } })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){
+      var ids = (d && Array.isArray(d.remove)) ? d.remove : [];
+      if (!ids.length) return 0;
+      var kill = {}; ids.forEach(function(id){ kill[id] = 1; });
+      var n0 = S.masterItems.length;
+      S.masterItems = S.masterItems.filter(function(m){ return m.done || !kill[m.id]; });
+      var n = n0 - S.masterItems.length;
+      if (n) { save(); if (typeof renderMasterList === 'function') renderMasterList(); }
+      return n;
+    })
+    .catch(function(){ return 0; });
+}
+
 // A published update reloads itself the next time the tab regains focus, so an
 // old copy of the app can never run his clicks after a fix ships. State is saved on
 // every change, so the reload loses nothing.
@@ -3586,7 +3609,7 @@ async function importMeetingItems() {
     if (typeof renderWeeklyReview === 'function') renderWeeklyReview();
     if (typeof renderDayBrainDump === 'function') renderDayBrainDump();
     try {
-      await fetch('https://api.jsonbin.io/v3/b/' + INBOX_BIN, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': jbKey() }, body: JSON.stringify({ items: [], _updated: Date.now() }) });
+      await fetch('https://api.jsonbin.io/v3/b/' + INBOX_BIN, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': jbKey() }, body: JSON.stringify({ items: [], remove: (data && Array.isArray(data.remove)) ? data.remove : [], _updated: Date.now() }) });
     } catch (e) { console.warn('inbox clear failed', e); }
     if (typeof pushSync === 'function') pushSync();
     alert('Imported ' + items.length + ' item(s) into this week’s brain dump.'
