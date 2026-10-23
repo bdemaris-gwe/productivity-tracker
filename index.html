@@ -1303,7 +1303,7 @@ function runWeeklyHygiene(keep){
   var MONTH=_endOfMonth(now), QUARTER=_endOfQuarter(now);
   var sum = { rolled:0, week:0, month:0, quarter:0, someday:0, chronic:[], realDate:[] };
   S.masterItems.forEach(function(it){
-    if (keep && keep[it.id]) return;                             // still on his Fri/Sat — leave it due today
+    if (keep && keep[it.id]) return;                             // swept to the import — he dates it at triage
     // `> today`, not `>=`: an item due ON the day the week closes was being skipped
     // as "not overdue", then went red hours later. Due-today is due-now — sweep it.
     if (it.done || !it.dueDate || it.dueDate > today) return;
@@ -2328,9 +2328,17 @@ function approveAllTriage() {
       if (!S.masterItems) S.masterItems = [];
       // A chosen day is authoritative — it is just a deadline, which is what puts the
       // task on that day. Everything still lands in masterItems; nothing is duplicated.
+      // ⛔ No auto-date. Brandon assigns every date himself (2026-10-23). No day picked =
+      // undated, which sorts to the top of the Master List and asks him for a date.
       var dueDate = (item.dest && _dateForWeekdayInWeek(item.dest, S.currentWeekKey))
         || item.dueDate
-        || defaultDueDateForCategory(item.pillar||'goodwolf', item.sub||'');
+        || '';
+      // A task that came back through the import (week close) REPLACES its old open
+      // copy, so re-triaging it never leaves a duplicate behind (Brandon, 2026-10-23).
+      var tk = _dumpKey(item.text);
+      S.masterItems = S.masterItems.filter(function(m){
+        return m.done || m.recur || _dumpKey(m.text) !== tk;
+      });
       S.masterItems.unshift({
         id: 'triage_' + Date.now() + '_' + Math.random(),
         text: item.text,
@@ -2893,9 +2901,10 @@ function collectUnfinished(C){
   var DU = C.dayUrgent || {};
   Object.keys(DU).forEach(function(k){
     (DU[k] || []).forEach(function(u){
-      // Surfaced master items are skipped: they already ARE master items. Sweeping
-      // them would re-add a second copy of the same task every single week.
-      if (u && !u.masterId && u.text && u.text.trim() && !u.done) take(u.text.trim());
+      // Surfaced master items are INCLUDED (Brandon, 2026-10-23): every unfinished task
+      // comes back through the import so he sets its date. No duplicate results —
+      // approveAllTriage replaces the open master copy with the same text.
+      if (u && u.text && u.text.trim() && !u.done) take(u.text.trim());
     });
   });
   return out;
@@ -3120,23 +3129,13 @@ function closeWeekAndStartFresh(){
   // ⛔ Unfinished items go to the BRAIN DUMP, not the Master List (Brandon, 2026-10-23).
   // Sweeping them onto the list made duplicates and let the classifier assign priorities
   // that were the model's, not his. He re-prioritizes them himself when he triages the dump.
-  // (Surfaced master items are already skipped by collectUnfinished — they stay put.)
+  // Surfaced master items go to the dump too; triage replaces their master copy.
 
-  // Tidy the master list so overdue tasks never compound into a red pile.
-  // ⛔ He closes the week on FRIDAY MORNING and keeps working Fri/Sat out of the Master
-  // List (Brandon, 2026-10-23). Hygiene used to push those very items into next week by
-  // age, so his Friday list vanished. Anything linked on today-or-later in the closing
-  // week stays due TODAY, which keeps it at the top of the dated Master List.
-  var keep = {}, todayYmd = _ymd(new Date());
-  var startD = dateFromKey(S.currentWeekKey || getCurrentMondayKey());
-  var DUk = C.dayUrgent || {};
-  ['mon','tue','wed','thu','fri','sat'].forEach(function(k, i){
-    var d = new Date(startD); d.setDate(d.getDate() + i);
-    if (_ymd(d) < todayYmd) return;
+  // Tidy the master list so overdue tasks never compound into a red pile — but leave
+  // the swept tasks alone. HE dates them at triage; hygiene must not re-date them first.
+  var keep = {}, DUk = C.dayUrgent || {};
+  Object.keys(DUk).forEach(function(k){
     (DUk[k] || []).forEach(function(u){ if (u && u.masterId && !u.done) keep[u.masterId] = 1; });
-  });
-  (S.masterItems || []).forEach(function(it){
-    if (keep[it.id] && !it.done && !it.recur && (!it.dueDate || it.dueDate < todayYmd)) it.dueDate = todayYmd;
   });
   var hyg = runWeeklyHygiene(keep);
 
