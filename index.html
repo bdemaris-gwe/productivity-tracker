@@ -3554,7 +3554,9 @@ function applyQueuedRemovals(){
     .catch(function(){ return null; }); }
   tag().then(function(t){ loadedTag = t; });
   function check(){
-    if (document.visibilityState !== 'visible' || !loadedTag) return;
+    if (document.visibilityState !== 'visible') return;
+    applyQueuedRemovals();                         // a queued cleanup lands without a reload
+    if (!loadedTag) return;
     tag().then(function(t){ if (t && t !== loadedTag) location.reload(); });
   }
   document.addEventListener('visibilitychange', check);
