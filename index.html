@@ -3515,12 +3515,13 @@ async function importMeetingItems() {
     // rather than filtering items first — a dropped blank would shift every category.
     var rawItems = (data && Array.isArray(data.items)) ? data.items : [];
     var rawMeta  = (data && Array.isArray(data.meta))  ? data.meta  : [];
-    var items = [];
+    var items = [], moveKeys = {};
     if (!S.dumpHints) S.dumpHints = {};
     rawItems.forEach(function(s, ix){
       var t = String(s).trim();
       if (!t) return;
       items.push(t);
+      if (rawMeta[ix] && rawMeta[ix].move) moveKeys[_dumpKey(t)] = 1;
       // A queued batch can stamp its own category — release-radar outreach is Good
       // Wolf / Sales. Remember it against the line so triage never has to re-derive
       // it from wording that reads like a music task.
@@ -3534,6 +3535,17 @@ async function importMeetingItems() {
     var cur = (typeof W.brainDump === 'string') ? W.brainDump : '';
     var block = (cur && !/\n$/.test(cur) ? '\n' : '') + (cur ? '\n' : '') + items.join('\n') + '\n';
     W.brainDump = cur + block;
+    // Lines queued with --move are being MOVED off the Master List (Brandon's master-list
+    // tune-up, 2026-10-23): drop the open master copy now, so it only exists in the dump
+    // until he triages it back with a date of his choosing.
+    var moved = 0;
+    if (Object.keys(moveKeys).length && S.masterItems) {
+      var n0 = S.masterItems.length;
+      S.masterItems = S.masterItems.filter(function(m){
+        return m.done || m.recur || !moveKeys[_dumpKey(m.text)];
+      });
+      moved = n0 - S.masterItems.length;
+    }
     S.viewWeekKey = S.currentWeekKey; // show the week we just wrote to
     save();
     if (typeof renderWeeklyReview === 'function') renderWeeklyReview();
@@ -3542,7 +3554,8 @@ async function importMeetingItems() {
       await fetch('https://api.jsonbin.io/v3/b/' + INBOX_BIN, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': jbKey() }, body: JSON.stringify({ items: [], _updated: Date.now() }) });
     } catch (e) { console.warn('inbox clear failed', e); }
     if (typeof pushSync === 'function') pushSync();
-    alert('Imported ' + items.length + ' item(s) into this week’s brain dump.');
+    alert('Imported ' + items.length + ' item(s) into this week’s brain dump.'
+      + (moved ? '\n' + moved + ' of them moved off the Master List. Triage puts them back with your dates.' : ''));
   } catch (e) { console.warn('Import failed', e); alert('Import failed: ' + e.message); }
 }
 
