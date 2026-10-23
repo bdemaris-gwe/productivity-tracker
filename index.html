@@ -2403,6 +2403,7 @@ function init() {
   // carry-forward walk anything already missed onto today.
   runMasterDueSurfacing();
   runDailyCarryForward();
+  if (reconcileDumpWithMaster()) save();
   const wn = getWeekNum();
   // The top header always shows the calendar's current week (not the view week).
   var wlEl = document.getElementById('week-label'); if(wlEl) wlEl.textContent = getWeekLabelForKey(S.currentWeekKey);
@@ -3504,6 +3505,40 @@ function jbHeaders() { return { 'Content-Type':'application/json','X-Master-Key'
 // Pull action items queued by the meeting-notes assistant (a separate "inbox" bin)
 // into THIS week's brain dump, through the app's own save path (no JSONbin race),
 // then clear the inbox so nothing re-imports.
+// ⛔ A task waiting in the brain dump is NOT also on the Master List (Brandon, 2026-10-23).
+// Any line in the current dump removes the open, non-recurring master copy with the
+// exact same text. Runs on every load, so it never depends
+// on which version of the app happened to be open when he clicked Import. Triage puts
+// the task back, with the date he picks.
+function reconcileDumpWithMaster(){
+  var W = (S.weeks || {})[S.currentWeekKey];
+  if (!W || typeof W.brainDump !== 'string' || !W.brainDump.trim() || !S.masterItems) return 0;
+  var keys = {};
+  W.brainDump.split('\n').forEach(function(l){ var k = _dumpKey(l); if (k) keys[k] = 1; });
+  if (!Object.keys(keys).length) return 0;
+  var n0 = S.masterItems.length;
+  S.masterItems = S.masterItems.filter(function(m){ return m.done || m.recur || !keys[_dumpKey(m.text)]; });
+  return n0 - S.masterItems.length;
+}
+
+// A published update reloads itself the next time the tab regains focus, so an
+// old copy of the app can never run his clicks after a fix ships. State is saved on
+// every change, so the reload loses nothing.
+(function watchForNewVersion(){
+  var loadedTag = null;
+  function tag(){ return fetch(location.pathname, { method: 'HEAD', cache: 'no-store' })
+    .then(function(r){ return r.headers.get('etag') || r.headers.get('last-modified'); })
+    .catch(function(){ return null; }); }
+  tag().then(function(t){ loadedTag = t; });
+  function check(){
+    if (document.visibilityState !== 'visible' || !loadedTag) return;
+    tag().then(function(t){ if (t && t !== loadedTag) location.reload(); });
+  }
+  document.addEventListener('visibilitychange', check);
+  window.addEventListener('focus', check);
+  setInterval(check, 5 * 60 * 1000);
+})();
+
 async function importMeetingItems() {
   var INBOX_BIN = '6a57e63df5f4af5e29945cf9'; // meeting-notes inbox (same JSONbin account as the main bin)
   if (!jbBin() || !jbKey()) { alert('Connect cloud sync first (Settings), then Import.'); return; }
