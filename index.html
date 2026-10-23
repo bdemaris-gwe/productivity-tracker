@@ -1297,12 +1297,13 @@ function nextWeekThemeDate(pillar, sub, from){
   return _ymd(d);
 }
 
-function runWeeklyHygiene(){
+function runWeeklyHygiene(keep){
   if (!S.masterItems) return null;
   var now = new Date(), today = _ymd(now);
   var MONTH=_endOfMonth(now), QUARTER=_endOfQuarter(now);
   var sum = { rolled:0, week:0, month:0, quarter:0, someday:0, chronic:[], realDate:[] };
   S.masterItems.forEach(function(it){
+    if (keep && keep[it.id]) return;                             // still on his Fri/Sat — leave it due today
     // `> today`, not `>=`: an item due ON the day the week closes was being skipped
     // as "not overdue", then went red hours later. Due-today is due-now — sweep it.
     if (it.done || !it.dueDate || it.dueDate > today) return;
@@ -3122,7 +3123,22 @@ function closeWeekAndStartFresh(){
   // (Surfaced master items are already skipped by collectUnfinished — they stay put.)
 
   // Tidy the master list so overdue tasks never compound into a red pile.
-  var hyg = runWeeklyHygiene();
+  // ⛔ He closes the week on FRIDAY MORNING and keeps working Fri/Sat out of the Master
+  // List (Brandon, 2026-10-23). Hygiene used to push those very items into next week by
+  // age, so his Friday list vanished. Anything linked on today-or-later in the closing
+  // week stays due TODAY, which keeps it at the top of the dated Master List.
+  var keep = {}, todayYmd = _ymd(new Date());
+  var startD = dateFromKey(S.currentWeekKey || getCurrentMondayKey());
+  var DUk = C.dayUrgent || {};
+  ['mon','tue','wed','thu','fri','sat'].forEach(function(k, i){
+    var d = new Date(startD); d.setDate(d.getDate() + i);
+    if (_ymd(d) < todayYmd) return;
+    (DUk[k] || []).forEach(function(u){ if (u && u.masterId && !u.done) keep[u.masterId] = 1; });
+  });
+  (S.masterItems || []).forEach(function(it){
+    if (keep[it.id] && !it.done && !it.recur && (!it.dueDate || it.dueDate < todayYmd)) it.dueDate = todayYmd;
+  });
+  var hyg = runWeeklyHygiene(keep);
 
   var base = S.currentWeekKey || getCurrentMondayKey();
   var nextKey = getNextMondayKey(base);
